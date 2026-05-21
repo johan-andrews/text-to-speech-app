@@ -8,8 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://usdqzzrynucnzhmlkosj.supabase.co/rest/v1/",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_z8G8Onmqkbcn5pEuXlBqtg_IVfKe5Hr",
+        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "REPLACE_WITH_RC_ANDROID_KEY",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "REPLACE_WITH_RC_IOS_KEY",
         "EXPO_PUBLIC_SENTRY_DSN": "REPLACE_WITH_SENTRY_DSN",
@@ -22,8 +22,8 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://usdqzzrynucnzhmlkosj.supabase.co/rest/v1/",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_z8G8Onmqkbcn5pEuXlBqtg_IVfKe5Hr",
+        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "REPLACE_WITH_RC_ANDROID_KEY",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "REPLACE_WITH_RC_IOS_KEY",
         "EXPO_PUBLIC_SENTRY_DSN": "REPLACE_WITH_SENTRY_DSN",
@@ -37,8 +37,8 @@
       },
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://usdqzzrynucnzhmlkosj.supabase.co/rest/v1/",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_z8G8Onmqkbcn5pEuXlBqtg_IVfKe5Hr",
+        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "REPLACE_WITH_RC_ANDROID_KEY",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "REPLACE_WITH_RC_IOS_KEY",
         "EXPO_PUBLIC_SENTRY_DSN": "REPLACE_WITH_SENTRY_DSN",
