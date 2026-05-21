@@ -1,13 +1,5 @@
-/**
- * Tabs layout — add new tabs by:
- *   1. Create app/(tabs)/<name>.tsx
- *   2. Add a tabBarIcon and tabBarLabel in the <Tabs.Screen> below.
- *
- * The custom TabBar renders itself — its tab list is driven entirely by
- * the screens registered here.
- */
 import { Tabs } from 'expo-router'
-import { House, Compass, Bell, CircleUser } from 'lucide-react-native'
+import { Mic, Clock, BookOpen, Settings } from 'lucide-react-native'
 import TabBar, { TAB_BAR_HEIGHT } from '@/components/TabBar'
 import { BG } from '@/lib/theme'
 
@@ -25,39 +17,39 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: 'Dictate',
           tabBarIcon: ({ color, size }) => (
-            <House size={size} color={color} strokeWidth={1.6} />
+            <Mic size={size} color={color} strokeWidth={1.8} />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="explore"
+        name="history"
         options={{
-          tabBarLabel: 'Explore',
+          tabBarLabel: 'History',
           tabBarIcon: ({ color, size }) => (
-            <Compass size={size} color={color} strokeWidth={1.6} />
+            <Clock size={size} color={color} strokeWidth={1.8} />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="activity"
+        name="vocabulary"
         options={{
-          tabBarLabel: 'Activity',
+          tabBarLabel: 'Vocab',
           tabBarIcon: ({ color, size }) => (
-            <Bell size={size} color={color} strokeWidth={1.6} />
+            <BookOpen size={size} color={color} strokeWidth={1.8} />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <CircleUser size={size} color={color} strokeWidth={1.6} />
+            <Settings size={size} color={color} strokeWidth={1.8} />
           ),
         }}
       />

@@ -2,7 +2,17 @@ import { createClient } from '@supabase/supabase-js'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { AppState } from 'react-native'
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
+let SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
+if (SUPABASE_URL.endsWith('/rest/v1/')) {
+  SUPABASE_URL = SUPABASE_URL.replace('/rest/v1/', '')
+} else if (SUPABASE_URL.endsWith('/rest/v1')) {
+  SUPABASE_URL = SUPABASE_URL.replace('/rest/v1', '')
+}
+// Remove trailing slashes
+if (SUPABASE_URL.endsWith('/')) {
+  SUPABASE_URL = SUPABASE_URL.slice(0, -1)
+}
+
 const SUPABASE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??

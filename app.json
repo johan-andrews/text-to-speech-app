@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "MyApp",
-    "slug": "my-app",
+    "name": "VoiceFlow AI",
+    "slug": "flowvoice-ai",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "myapp",
+    "scheme": "voiceflow",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -14,21 +14,25 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.myapp",
+      "bundleIdentifier": "com.yourcompany.voiceflowai",
       "associatedDomains": [
         "applinks:REPLACE_WITH_YOUR_DOMAIN"
-      ]
+      ],
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Allow VoiceFlow to use the microphone.",
+        "NSSpeechRecognitionUsageDescription": "Allow VoiceFlow to use speech recognition."
+      }
     },
     "android": {
-      "package": "com.yourcompany.myapp",
+      "package": "com.yourcompany.voiceflowai",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0d0d0d"
       },
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "androidStatusBar": {
         "barStyle": "light-content",
@@ -41,9 +45,14 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "myapp" }
+            {
+              "scheme": "voiceflow"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -64,22 +73,21 @@
       "expo-secure-store",
       "expo-localization",
       "expo-font",
+      "expo-av",
       [
-        "@sentry/react-native/expo",
+        "expo-speech-recognition",
         {
-          "url": "https://sentry.io/",
-          "project": "react-native",
-          "organization": "your-org"
+          "microphonePermission": "Allow VoiceFlow to use the microphone.",
+          "speechRecognitionPermission": "Allow VoiceFlow to use speech recognition."
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_ID"
+        "projectId": "73fa9eaa-c24b-4458-8204-e1e976d2d57c"
       }
     },
-    "owner": "REPLACE_WITH_YOUR_EXPO_OWNER"
+    "owner": "johanandrews"
   }
 }

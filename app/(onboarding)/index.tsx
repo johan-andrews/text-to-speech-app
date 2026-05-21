@@ -1,70 +1,61 @@
-/**
- * Onboarding screen — runs once after first login.
- *
- * This template has a single onboarding step: collect the user's display name.
- * The step is optional (users can skip).
- *
- * To add more onboarding steps:
- *   1. Create app/(onboarding)/step2.tsx, step3.tsx, etc.
- *   2. Update this file to navigate to the next step instead of completing onboarding.
- *   3. Complete onboarding only in the last step.
- */
 import { useState } from 'react'
 import {
   View, Pressable, TextInput, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native'
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Text } from '@/components/ui/Text'
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
-import { ACCENT, ACCENT_DIM, ACCENT_BORDER, BG, SURFACE, BORDER } from '@/lib/theme'
+import { useTranscription } from '@/contexts/TranscriptionContext'
+import { ACCENT, BG, SURFACE, BORDER, TEXT_PRIMARY, TEXT_SECONDARY } from '@/lib/theme'
 import { LinearGradient } from 'expo-linear-gradient'
 import { adjustBrightness } from '@/lib/utils'
-import { Fonts } from '@/lib/typography'
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets()
+  const { updateConfig } = useTranscription()
 
   const [displayName, setDisplayName] = useState('')
-  const [loading,     setLoading]     = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   track('onboarding_started')
 
-  async function complete(name?: string) {
+  async function complete() {
     setLoading(true)
     setError(null)
 
     const { error: err } = await supabase.auth.updateUser({
       data: {
         onboarding_completed: true,
-        full_name: name?.trim() || undefined,
+        full_name: displayName.trim() || undefined,
       },
     })
 
     if (err) {
       setLoading(false)
-      setError('Could not save. Please try again.')
+      setError('Could not save profile metadata. Please try again.')
       return
     }
 
-    // Also upsert the profiles table (best-effort, non-blocking)
-    if (name?.trim()) {
+    // Best effort profile upsert (non-blocking)
+    if (displayName.trim()) {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           await supabase
             .from('profiles')
-            .upsert({ id: user.id, display_name: name.trim() })
+            .upsert({ id: user.id, display_name: displayName.trim() })
         }
-      } catch { /* profile upsert failure is non-fatal; metadata already saved above */ }
+      } catch { /* profile upsert failure is non-fatal */ }
     }
 
-    track('onboarding_completed', { skipped: !name?.trim() })
+    track('onboarding_completed', {
+      skipped: !displayName.trim(),
+    })
     setLoading(false)
-    // _layout.tsx auth guard detects onboarding_completed = true and routes to (tabs)
   }
 
   return (
@@ -76,34 +67,35 @@ export default function OnboardingScreen() {
         <Animated.View entering={FadeInDown.delay(100).duration(400)} style={s.content}>
           {/* Header */}
           <View style={s.header}>
-            <View style={[s.iconBadge, { backgroundColor: ACCENT_DIM, borderColor: ACCENT_BORDER }]}>
-              <Text style={{ fontSize: 28 }}>👋</Text>
+            <View style={[s.iconBadge, { backgroundColor: 'rgba(96,165,250,0.1)' }]}>
+              <Text style={{ fontSize: 28 }}>🎙️</Text>
             </View>
-            <Text style={s.title}>What should we call you?</Text>
+            <Text style={s.title}>Welcome to VoiceFlow AI</Text>
             <Text style={s.subtitle}>
-              This is optional — you can always change it later in your profile.
+              Configure your display name to start transcribing speech-to-text immediately.
             </Text>
           </View>
 
-          {/* Name input */}
-          <View style={s.fieldGroup}>
-            <Text style={s.label}>YOUR NAME</Text>
-            <TextInput
-              value={displayName}
-              onChangeText={(v) => { setDisplayName(v); setError(null) }}
-              placeholder="Enter your name"
-              placeholderTextColor="rgba(255,255,255,0.18)"
-              style={s.input}
-              autoCapitalize="words"
-              returnKeyType="done"
-              onSubmitEditing={() => complete(displayName)}
-              autoFocus
-            />
+          {/* Form fields */}
+          <View style={s.form}>
+            <View style={s.fieldGroup}>
+              <Text style={s.label}>What should we call you?</Text>
+              <TextInput
+                value={displayName}
+                onChangeText={(v) => { setDisplayName(v); setError(null) }}
+                placeholder="Enter your name (optional)"
+                placeholderTextColor="#94A3B8"
+                style={s.input}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={complete}
+              />
+            </View>
           </View>
 
           {error ? (
             <Animated.View entering={FadeIn.duration(180)} style={s.errorBox}>
-              <Text style={{ color: '#f87171', fontSize: 13 }}>{error}</Text>
+              <Text style={{ color: '#ef4444', fontSize: 13 }}>{error}</Text>
             </Animated.View>
           ) : null}
         </Animated.View>
@@ -111,7 +103,7 @@ export default function OnboardingScreen() {
         {/* Bottom buttons */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={s.buttons}>
           <Pressable
-            onPress={() => complete(displayName)}
+            onPress={complete}
             disabled={loading}
             style={({ pressed }) => ({
               opacity: loading ? 0.5 : pressed ? 0.85 : 1,
@@ -119,21 +111,18 @@ export default function OnboardingScreen() {
             })}
           >
             <LinearGradient
-              colors={[ACCENT, adjustBrightness(ACCENT, -25)]}
+              colors={[ACCENT, adjustBrightness(ACCENT, -15)]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={s.primaryBtn}
             >
-              {loading
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>
-                    {displayName.trim() ? 'Continue  →' : 'Get Started  →'}
-                  </Text>
-              }
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>
+                  {displayName.trim() ? 'Save and Continue  →' : 'Get Started  →'}
+                </Text>
+              )}
             </LinearGradient>
-          </Pressable>
-
-          <Pressable onPress={() => complete()} disabled={loading} style={{ alignItems: 'center', paddingVertical: 6 }}>
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Skip for now</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -141,32 +130,38 @@ export default function OnboardingScreen() {
   )
 }
 
-// adjustBrightness imported from @/lib/utils
-
 const s = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: 24 },
   content: { flex: 1, gap: 24, justifyContent: 'center' },
-  header: { gap: 12, alignItems: 'center', paddingBottom: 8 },
+  header: { gap: 10, alignItems: 'center', paddingBottom: 8 },
   iconBadge: {
-    width: 80, height: 80, borderRadius: 24,
-    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
+    width: 72, height: 72, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
   },
-  title:    { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.38)', textAlign: 'center', lineHeight: 21, maxWidth: 280 },
-
-  fieldGroup: { gap: 8 },
-  label: { fontSize: 11, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' },
+  title:    { fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, letterSpacing: -0.5, textAlign: 'center' },
+  subtitle: { fontSize: 13, color: TEXT_SECONDARY, textAlign: 'center', lineHeight: 18, maxWidth: 300 },
+  form: { gap: 14 },
+  fieldGroup: { gap: 6 },
+  label: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase', color: TEXT_SECONDARY },
   input: {
-    height: 52, backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1, borderColor: BORDER, borderRadius: 14,
-    paddingHorizontal: 18, color: '#fff', fontSize: 16,
-    fontFamily: Fonts.regular,
+    height: 48, backgroundColor: '#F8FAFC',
+    borderWidth: 1, borderColor: BORDER, borderRadius: 10,
+    paddingHorizontal: 16, color: TEXT_PRIMARY, fontSize: 14,
+  },
+  getKeyLink: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
+  },
+  getKeyText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: ACCENT,
   },
   errorBox: {
-    backgroundColor: 'rgba(248,113,113,0.08)', borderRadius: 8,
-    borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)',
+    backgroundColor: 'rgba(239,68,68,0.06)', borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)',
     paddingHorizontal: 14, paddingVertical: 10,
   },
   buttons:    { gap: 12 },
-  primaryBtn: { height: 56, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { height: 50, alignItems: 'center', justifyContent: 'center' },
 })
