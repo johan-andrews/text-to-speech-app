@@ -28,16 +28,26 @@ const EASE_IN = Easing.in(Easing.cubic)
 export const TAB_BAR_HEIGHT = TAB_HEIGHT
 export const TAB_BAR_CLEARANCE = TAB_HEIGHT + 4
 
+export const ROUTE_COLORS: Record<string, string> = {
+  index: '#3B82F6',      // Dictate - Vibrant Blue
+  history: '#8B5CF6',    // History - Vibrant Purple
+  vocabulary: '#10B981', // Vocab - Vibrant Emerald Green
+  settings: '#F59E0B',   // Settings - Vibrant Amber
+  profile: '#EC4899',    // Profile - Vibrant Pink
+}
+
 // ─── Single tab item ──────────────────────────────────────────────────────────
 
 function TabItem({
   label,
   isActive,
+  activeColor = TAB_ACTIVE,
   onPress,
   icon,
 }: {
   label: string
   isActive: boolean
+  activeColor?: string
   onPress: () => void
   icon?: React.ReactNode
 }) {
@@ -64,11 +74,11 @@ function TabItem({
       accessibilityState={{ selected: isActive }}
     >
       {/* Active indicator line at top */}
-      <Animated.View style={[s.indicator, indicatorStyle]} />
+      <Animated.View style={[s.indicator, { backgroundColor: activeColor }, indicatorStyle]} />
 
       <Animated.View style={[s.tabInner, pressStyle]}>
         {icon}
-        <Text style={[s.label, isActive && s.labelActive]} numberOfLines={1}>
+        <Text style={[s.label, isActive && { color: activeColor, fontWeight: '700' }]} numberOfLines={1}>
           {label}
         </Text>
       </Animated.View>
@@ -91,12 +101,16 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
     <View style={s.bar}>
       {state.routes.map((route, i) => {
         const { options } = descriptors[route.key]
+        if ((options as any).href === null) return null // Skip hidden tabs!
+
         const isActive = state.index === i
         const label = typeof options.tabBarLabel === 'string'
           ? options.tabBarLabel
           : (options.title ?? route.name)
+        
+        const activeColor = ROUTE_COLORS[route.name] || TAB_ACTIVE
         const icon = options.tabBarIcon?.({
-          color: isActive ? TAB_ACTIVE : TAB_INACTIVE,
+          color: isActive ? activeColor : TAB_INACTIVE,
           size: ICON_SIZE,
           focused: isActive,
         })
@@ -106,6 +120,7 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
             key={route.key}
             label={label}
             isActive={isActive}
+            activeColor={activeColor}
             icon={icon}
             onPress={() => handlePress(route.name, route.key, i)}
           />

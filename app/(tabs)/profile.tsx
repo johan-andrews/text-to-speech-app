@@ -20,6 +20,7 @@ import {
     TEXT_PRIMARY,
     TEXT_SECONDARY,
     TEXT_TERTIARY,
+    ERROR,
 } from '@/lib/theme'
 import { TAB_BAR_CLEARANCE } from '@/components/TabBar'
 import { demoUser } from '@/lib/mockData'
@@ -125,7 +126,7 @@ export default function ProfileScreen() {
                 disabled={signingOut}
                 style={({ pressed }) => [s.signOutBtn, (pressed || signingOut) && { opacity: 0.72 }]}
             >
-                <Ionicons name="log-out-outline" size={17} color="rgba(255,255,255,0.45)" />
+                <Ionicons name="log-out-outline" size={17} color={ERROR} />
                 <Text style={s.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
             </Pressable>
 
@@ -166,7 +167,7 @@ const s = StyleSheet.create({
         borderRadius: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.18)',
+        backgroundColor: ACCENT,
         marginBottom: 4,
     },
     avatarText: { fontSize: 24, fontWeight: '800', color: '#fff' },
@@ -236,5 +237,5 @@ const s = StyleSheet.create({
         gap: 7,
         paddingVertical: 10,
     },
-    signOutText: { color: 'rgba(255,255,255,0.45)', fontSize: 14, fontWeight: '500' },
+    signOutText: { color: ERROR, fontSize: 14, fontWeight: '600' },
 })

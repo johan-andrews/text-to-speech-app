@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { Mic, Clock, BookOpen, Settings } from 'lucide-react-native'
+import { Mic, Clock, BookOpen, Settings, User } from 'lucide-react-native'
 import TabBar, { TAB_BAR_HEIGHT } from '@/components/TabBar'
 import { BG } from '@/lib/theme'
 
@@ -51,6 +51,31 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Settings size={size} color={color} strokeWidth={1.8} />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <User size={size} color={color} strokeWidth={1.8} />
+          ),
+        }}
+      />
+
+      {/* Exclude unused Explore and Activity tabs completely */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="activity"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

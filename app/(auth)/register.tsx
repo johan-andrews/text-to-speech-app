@@ -163,7 +163,7 @@ export default function RegisterScreen() {
 
               <View style={s.footerMeta}>
                 <Text style={s.footerMetaText}>Already have an account? </Text>
-                <Pressable onPress={() => router.push('/(auth)/login')}>
+                <Pressable onPress={() => router.push('/')}>
                   <Text style={s.footerMetaLink}>Sign In</Text>
                 </Pressable>
               </View>
