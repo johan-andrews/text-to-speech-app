@@ -142,19 +142,6 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
-        {/* Account Details */}
-        <Text style={s.sectionTitle}>Account</Text>
-        <Card style={s.preferenceCard}>
-          <View style={s.accountRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.accountEmailLabel}>Signed in as</Text>
-              <Text style={s.accountEmailValue}>{userEmail || 'Loading account...'}</Text>
-            </View>
-            <Pressable onPress={handleLogout} style={s.logoutSettingsBtn}>
-              <Text style={s.logoutSettingsBtnText}>Logout</Text>
-            </Pressable>
-          </View>
-        </Card>
       </ScrollView>
     </View>
   )

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   View, Pressable, StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator, TextInput as RNTextInput, ScrollView, Alert
@@ -15,11 +15,15 @@ import { APP_NAME } from '@/lib/constants'
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets()
+  const [step, setStep] = useState<'form' | 'verify'>('form')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']) // 8-digit OTP
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const otpRefs = useRef<(RNTextInput | null)[]>([])
 
   const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password.trim()) {
@@ -49,14 +53,13 @@ export default function RegisterScreen() {
 
       if (data.session) {
         // Email confirmation is disabled, logged in immediately!
-        Alert.alert('Success!', 'Registration successful! Welcome to VoiceFlow AI.')
+        Alert.alert('Success!', 'Registration successful! Welcome to VoiceFlow.', [
+          { text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)') }
+        ])
       } else {
-        // Email confirmation is enabled in dashboard
-        Alert.alert(
-          'Verification Required',
-          'A confirmation email has been sent! \n\nPRO-TIP: To bypass verification links entirely, open your Supabase Dashboard -> Auth -> Providers -> Email, and turn off "Confirm email". This registers new accounts instantly.',
-          [{ text: 'Got it!', onPress: () => router.push('/(auth)/login') }]
-        )
+        // Email confirmation is enabled, proceed to verify step!
+        setStep('verify')
+        setTimeout(() => otpRefs.current[0]?.focus(), 300)
       }
     } catch (e: any) {
       setError(e?.message ?? 'Registration failed.')
@@ -65,10 +68,90 @@ export default function RegisterScreen() {
     }
   }
 
+  const handleVerifyOtp = async (code: string) => {
+    if (code.length < 8) return
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { data, error: err } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: code,
+        type: 'signup',
+      })
+      if (err) throw err
+
+      Alert.alert('Success!', 'Your account has been verified! Welcome to VoiceFlow.', [
+        { text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)') }
+      ])
+    } catch (e: any) {
+      setError(e?.message ?? 'Invalid code or session expired.')
+      setOtp(['', '', '', '', '', '', '', ''])
+      setTimeout(() => otpRefs.current[0]?.focus(), 50)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOtpChange = (val: string, index: number) => {
+    const digit = val.replace(/\D/g, '').slice(-1)
+    const next = [...otp]
+    next[index] = digit
+    setOtp(next)
+    if (digit && index < 7) otpRefs.current[index + 1]?.focus()
+    const code = next.join('')
+    if (code.length === 8 && !next.includes('')) handleVerifyOtp(code)
+  }
+
+  const handleOtpKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      const next = [...otp]
+      next[index - 1] = ''
+      setOtp(next)
+      otpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleResend = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+          }
+        }
+      })
+      if (signUpError) throw signUpError
+      setOtp(['', '', '', '', '', '', '', ''])
+      Alert.alert('Code Resent', 'A new 8-digit verification code has been sent to your email.')
+      setTimeout(() => otpRefs.current[0]?.focus(), 50)
+    } catch (e: any) {
+      setError(e?.message ?? 'Resend failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const goBackToForm = () => {
+    setStep('form')
+    setOtp(['', '', '', '', '', '', '', ''])
+    setError(null)
+  }
+
   return (
     <View style={s.root}>
       {/* Back button */}
-      <Pressable onPress={() => router.back()} style={[s.backBtn, { top: insets.top + 14 }]} hitSlop={14}>
+      <Pressable onPress={() => {
+        if (step === 'verify') {
+          goBackToForm()
+        } else {
+          router.back()
+        }
+      }} style={[s.backBtn, { top: insets.top + 14 }]} hitSlop={14}>
         <Ionicons name="chevron-back" size={24} color="#0F172A" />
       </Pressable>
 
@@ -88,86 +171,159 @@ export default function RegisterScreen() {
               <Text style={s.appBadgeText}>{APP_NAME}</Text>
             </View>
 
-            {/* Heading */}
-            <View style={s.titleBlock}>
-              <Text style={s.titleBold}>Create account</Text>
-              <Text style={s.sub}>Get started for free. Speak, think, and create.</Text>
-            </View>
-
-            <View style={s.stepWrap}>
-              {/* Name */}
-              <View style={s.fieldGroup}>
-                <Text style={s.label}>FULL NAME</Text>
-                <RNTextInput
-                  value={fullName}
-                  onChangeText={(v) => { setFullName(v); setError(null) }}
-                  style={s.input}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-              </View>
-
-              {/* Email */}
-              <View style={s.fieldGroup}>
-                <Text style={s.label}>EMAIL ADDRESS</Text>
-                <RNTextInput
-                  value={email}
-                  onChangeText={(v) => { setEmail(v); setError(null) }}
-                  style={s.input}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              {/* Password */}
-              <View style={s.fieldGroup}>
-                <Text style={s.label}>PASSWORD</Text>
-                <RNTextInput
-                  value={password}
-                  onChangeText={(v) => { setPassword(v); setError(null) }}
-                  style={s.input}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              {error ? (
-                <View style={s.errorBox}>
-                  <Text style={{ color: ERROR, fontSize: 13 }}>{error}</Text>
+            {step === 'form' ? (
+              <>
+                {/* Heading */}
+                <View style={s.titleBlock}>
+                  <Text style={s.titleBold}>Create account</Text>
+                  <Text style={s.sub}>Get started for free. Speak, think, and create.</Text>
                 </View>
-              ) : null}
 
-              <Pressable
-                onPress={handleRegister}
-                disabled={loading}
-                style={({ pressed }) => ({
-                  opacity: loading ? 0.6 : pressed ? 0.85 : 1,
-                  borderRadius: 14, overflow: 'hidden',
-                  marginTop: 10,
-                })}
-              >
-                <LinearGradient
-                  colors={[ACCENT, '#1D4ED8']}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={s.btn}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={s.btnText}>Register</Text>
-                  )}
-                </LinearGradient>
-              </Pressable>
+                <View style={s.stepWrap}>
+                  {/* Name */}
+                  <View style={s.fieldGroup}>
+                    <Text style={s.label}>FULL NAME</Text>
+                    <RNTextInput
+                      value={fullName}
+                      onChangeText={(v) => { setFullName(v); setError(null) }}
+                      style={s.input}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
 
-              <View style={s.footerMeta}>
-                <Text style={s.footerMetaText}>Already have an account? </Text>
-                <Pressable onPress={() => router.push('/')}>
-                  <Text style={s.footerMetaLink}>Sign In</Text>
-                </Pressable>
-              </View>
-            </View>
+                  {/* Email */}
+                  <View style={s.fieldGroup}>
+                    <Text style={s.label}>EMAIL ADDRESS</Text>
+                    <RNTextInput
+                      value={email}
+                      onChangeText={(v) => { setEmail(v); setError(null) }}
+                      style={s.input}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  {/* Password */}
+                  <View style={s.fieldGroup}>
+                    <Text style={s.label}>PASSWORD</Text>
+                    <RNTextInput
+                      value={password}
+                      onChangeText={(v) => { setPassword(v); setError(null) }}
+                      style={s.input}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  {error ? (
+                    <View style={s.errorBox}>
+                      <Text style={{ color: ERROR, fontSize: 13 }}>{error}</Text>
+                    </View>
+                  ) : null}
+
+                  <Pressable
+                    onPress={handleRegister}
+                    disabled={loading}
+                    style={({ pressed }) => ({
+                      opacity: loading ? 0.6 : pressed ? 0.85 : 1,
+                      borderRadius: 14, overflow: 'hidden',
+                      marginTop: 10,
+                    })}
+                  >
+                    <LinearGradient
+                      colors={[ACCENT, '#1D4ED8']}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={s.btn}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={s.btnText}>Register</Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
+
+                  <View style={s.footerMeta}>
+                    <Text style={s.footerMetaText}>Already have an account? </Text>
+                    <Pressable onPress={() => router.push('/')}>
+                      <Text style={s.footerMetaLink}>Sign In</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* Heading */}
+                <View style={s.titleBlock}>
+                  <Text style={s.titleBold}>Verify Account</Text>
+                  <Text style={s.sub}>We sent an 8-digit verification code to your email. Enter it below to complete registration.</Text>
+                </View>
+
+                <View style={s.stepWrap}>
+                  <View style={s.otpRow}>
+                    {otp.map((digit, i) => (
+                      <RNTextInput
+                        key={i}
+                        ref={(r) => { otpRefs.current[i] = r }}
+                        value={digit}
+                        onChangeText={(v) => handleOtpChange(v, i)}
+                        onKeyPress={(e) => handleOtpKeyPress(e, i)}
+                        style={[
+                          s.otpBox,
+                          digit ? { borderColor: ACCENT, backgroundColor: '#EFF6FF', color: '#1E3A8A', fontWeight: '800' } : null
+                        ]}
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        selectTextOnFocus
+                        caretHidden
+                        editable={!loading}
+                      />
+                    ))}
+                  </View>
+
+                  {error ? (
+                    <View style={s.errorBox}>
+                      <Text style={{ color: ERROR, fontSize: 13 }}>{error}</Text>
+                    </View>
+                  ) : null}
+
+                  <Pressable
+                    onPress={() => handleVerifyOtp(otp.join(''))}
+                    disabled={loading || otp.includes('')}
+                    style={({ pressed }) => ({
+                      opacity: (loading || otp.includes('')) ? 0.45 : pressed ? 0.88 : 1,
+                      borderRadius: 14, overflow: 'hidden',
+                      marginTop: 10,
+                    })}
+                  >
+                    <LinearGradient
+                      colors={[ACCENT, '#1D4ED8']}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={s.btn}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={s.btnText}>Verify Code</Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
+
+                  <View style={s.footerMeta}>
+                    <Pressable onPress={handleResend} disabled={loading} hitSlop={10}>
+                      <Text style={s.footerMetaLink}>Resend code</Text>
+                    </Pressable>
+                    <Text style={{ color: '#E2E8F0', marginHorizontal: 8 }}>·</Text>
+                    <Pressable onPress={goBackToForm} hitSlop={10}>
+                      <Text style={{ color: '#64748B', fontSize: 14, fontWeight: '600' }}>Change details</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </>
+            )}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -213,4 +369,16 @@ const s = StyleSheet.create({
   footerMeta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14 },
   footerMetaText: { color: '#64748B', fontSize: 14 },
   footerMetaLink: { color: ACCENT, fontSize: 14, fontWeight: '700' },
+  otpRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4, marginTop: 10 },
+  otpBox: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    color: '#0F172A',
+    fontSize: 18,
+    textAlign: 'center',
+  },
 })

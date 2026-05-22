@@ -32,6 +32,9 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "androidStatusBar": {
@@ -88,6 +91,12 @@
         "projectId": "73fa9eaa-c24b-4458-8204-e1e976d2d57c"
       }
     },
-    "owner": "johanandrews"
+    "owner": "johanandrews",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/73fa9eaa-c24b-4458-8204-e1e976d2d57c"
+    }
   }
 }

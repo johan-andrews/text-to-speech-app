@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, ScrollView, StyleSheet, Pressable } from 'react-native'
+import { View, ScrollView, StyleSheet, Pressable, Linking } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -129,6 +129,10 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={17} color={ERROR} />
                 <Text style={s.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
             </Pressable>
+
+            <Text style={{ textAlign: 'center', color: '#64748B', fontSize: 13, marginTop: 24, marginBottom: 8 }}>
+              developed bu: <Text style={{ color: '#8B5CF6', fontWeight: '600', textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://www.linkedin.com/in/johan-andrews-3b9505312/')}>johan_andrews</Text>
+            </Text>
 
             <AlertModal
                 visible={signOutModal}

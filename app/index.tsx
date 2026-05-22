@@ -24,7 +24,7 @@ const { width: SW, height: SH } = Dimensions.get('window')
 const DEV_ALLOW_SKIP = __DEV__
 
 const FEATURES = [
-  { icon: 'shield-checkmark-outline' as const, title: 'Secure OTP', desc: 'Passwordless 6-digit access' },
+  { icon: 'shield-checkmark-outline' as const, title: 'Secure Access', desc: 'Protected email and password login' },
   { icon: 'flash-outline' as const, title: 'Blazing Fast', desc: 'High-speed AI transcription' },
   { icon: 'cloud-done-outline' as const, title: 'Always in Sync', desc: 'Secure cloud voice history' },
 ]
@@ -33,15 +33,13 @@ export default function LoginAndWelcomeScreen() {
   const insets = useSafeAreaInsets()
 
   // ── Authentication flow state ──
-  const [step, setStep] = useState<'email' | 'otp'>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cooldown, setCooldown] = useState(0)
 
-  const otpRefs = useRef<(RNTextInput | null)[]>([])
   const emailRef = useRef<RNTextInput>(null)
+  const passwordRef = useRef<RNTextInput>(null)
 
   // ── Floating orbs animations ──
   const orbOneY = useSharedValue(0)
@@ -77,95 +75,32 @@ export default function LoginAndWelcomeScreen() {
     return () => sub.remove()
   }, [])
 
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [cooldown])
-
   const orbOneStyle = useAnimatedStyle(() => ({ transform: [{ translateY: orbOneY.value }] }))
   const orbTwoStyle = useAnimatedStyle(() => ({ transform: [{ translateY: orbTwoY.value }] }))
 
   // ── Authentication logic handlers ──
-  const handleSendOtp = async () => {
-    const trimmed = email.trim().toLowerCase()
-    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+  const handleSignIn = async () => {
+    const trimmedEmail = email.trim().toLowerCase()
+    if (!trimmedEmail || !trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
       setError('Enter a valid email address')
       return
     }
-    setLoading(true)
-    setError(null)
-    const { error: err } = await supabase.auth.signInWithOtp({ email: trimmed })
-    setLoading(false)
-    if (err) {
-      setError(err.message)
+    if (!password) {
+      setError('Enter your password')
       return
     }
-    setStep('otp')
-    setCooldown(60)
-    setTimeout(() => otpRefs.current[0]?.focus(), 300)
-  }
-
-  const handleVerifyOtp = useCallback(async (code: string) => {
-    if (code.length < 6) return
     setLoading(true)
     setError(null)
-    const { error: err } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: code,
-      type: 'email',
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password: password,
     })
     setLoading(false)
     if (err) {
-      setError('Invalid code or session expired.')
-      setOtp(['', '', '', '', '', ''])
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
-      return
-    }
-    // Auth status listener in root layout will detect verifyOtp and route automatically,
-    // but we redirect here too to ensure a seamless jump!
-    router.replace('/(tabs)')
-  }, [email])
-
-  const handleOtpChange = (val: string, index: number) => {
-    const digit = val.replace(/\D/g, '').slice(-1)
-    const next = [...otp]
-    next[index] = digit
-    setOtp(next)
-    if (digit && index < 5) otpRefs.current[index + 1]?.focus()
-    const code = next.join('')
-    if (code.length === 6 && !next.includes('')) handleVerifyOtp(code)
-  }
-
-  const handleOtpKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      const next = [...otp]
-      next[index - 1] = ''
-      setOtp(next)
-      otpRefs.current[index - 1]?.focus()
-    }
-  }
-
-  const handleResend = async () => {
-    if (cooldown > 0) return
-    setLoading(true)
-    setError(null)
-    const { error: err } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() })
-    setLoading(false)
-    if (err) {
       setError(err.message)
       return
     }
-    setCooldown(60)
-    setOtp(['', '', '', '', '', ''])
-    setTimeout(() => otpRefs.current[0]?.focus(), 50)
-  }
-
-  const goBack = () => {
-    setStep('email')
-    setOtp(['', '', '', '', '', ''])
-    setError(null)
-    setTimeout(() => emailRef.current?.focus(), 150)
+    router.replace('/(tabs)')
   }
 
   const handleDevSkip = () => {
@@ -220,7 +155,7 @@ export default function LoginAndWelcomeScreen() {
             </View>
           </View>
 
-          {/* Welcome and App Features Grid (Combined landing background features) */}
+          {/* Welcome and App Features Grid */}
           <View style={s.welcomeWrap}>
             <Text style={s.appName}>{APP_NAME}</Text>
             <Text style={s.appTagline}>{APP_TAGLINE}</Text>
@@ -243,162 +178,106 @@ export default function LoginAndWelcomeScreen() {
 
           {/* Combined Login Forms Input Card */}
           <Animated.View entering={FadeInDown.delay(100).duration(450)} style={s.card}>
-            {step === 'email' ? (
-              <View style={s.stepWrap}>
-                <View style={s.titleBlock}>
-                  <Text style={s.cardTitle}>Sign in to start</Text>
-                  <Text style={s.cardSub}>Enter your email below to receive a 6-digit verification code directly in your inbox.</Text>
+            <View style={s.stepWrap}>
+              <View style={s.titleBlock}>
+                <Text style={s.cardTitle}>Sign in to start</Text>
+                <Text style={s.cardSub}>Enter your email and password to access your VoiceFlow account.</Text>
+              </View>
+
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>EMAIL ADDRESS</Text>
+                <RNTextInput
+                  ref={emailRef}
+                  value={email}
+                  onChangeText={(v) => { setEmail(v); setError(null) }}
+                  placeholder="name@company.com"
+                  placeholderTextColor="#94A3B8"
+                  style={s.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                />
+              </View>
+
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>PASSWORD</Text>
+                <RNTextInput
+                  ref={passwordRef}
+                  value={password}
+                  onChangeText={(v) => { setPassword(v); setError(null) }}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94A3B8"
+                  style={s.input}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignIn}
+                />
+              </View>
+
+              {error ? (
+                <View style={s.errorBox}>
+                  <Ionicons name="alert-circle" size={16} color={ERROR} style={{ marginRight: 6 }} />
+                  <Text style={{ color: ERROR, fontSize: 13, fontWeight: '500', flex: 1 }}>{error}</Text>
                 </View>
+              ) : null}
 
-                <View style={s.fieldGroup}>
-                  <Text style={s.label}>EMAIL ADDRESS</Text>
-                  <RNTextInput
-                    ref={emailRef}
-                    value={email}
-                    onChangeText={(v) => { setEmail(v); setError(null) }}
-                    placeholder="name@company.com"
-                    placeholderTextColor="#94A3B8"
-                    style={s.input}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSendOtp}
-                  />
-                </View>
-
-                {error ? (
-                  <View style={s.errorBox}>
-                    <Ionicons name="alert-circle" size={16} color={ERROR} style={{ marginRight: 6 }} />
-                    <Text style={{ color: ERROR, fontSize: 13, fontWeight: '500', flex: 1 }}>{error}</Text>
-                  </View>
-                ) : null}
-
-                <Pressable
-                  onPress={handleSendOtp}
-                  disabled={loading || !email.trim()}
-                  style={({ pressed }) => ({
-                    opacity: (loading || !email.trim()) ? 0.45 : pressed ? 0.88 : 1,
-                    borderRadius: 14, overflow: 'hidden',
-                  })}
+              <Pressable
+                onPress={handleSignIn}
+                disabled={loading || !email.trim() || !password}
+                style={({ pressed }) => ({
+                  opacity: (loading || !email.trim() || !password) ? 0.45 : pressed ? 0.88 : 1,
+                  borderRadius: 14, overflow: 'hidden',
+                })}
+              >
+                <LinearGradient
+                  colors={[ACCENT, '#1D4ED8']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.btn}
                 >
-                  <LinearGradient
-                    colors={[ACCENT, '#1D4ED8']}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                    style={s.btn}
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={s.btnText}>Send Code</Text>
-                    )}
-                  </LinearGradient>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={s.btnText}>Sign In</Text>
+                  )}
+                </LinearGradient>
+              </Pressable>
+
+              {/* Social Login Separator */}
+              <View style={s.dividerRow}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>or sign in with</Text>
+                <View style={s.dividerLine} />
+              </View>
+
+              <View style={s.socialRow}>
+                <Pressable
+                  onPress={() => handleOAuthLogin('google')}
+                  style={({ pressed }) => [s.socialBtn, pressed && { opacity: 0.78 }]}
+                >
+                  <Ionicons name="logo-google" size={17} color="#EA4335" />
+                  <Text style={s.socialBtnText}>Google</Text>
                 </Pressable>
 
-                {/* Social Login Separator */}
-                <View style={s.dividerRow}>
-                  <View style={s.dividerLine} />
-                  <Text style={s.dividerText}>or sign in with</Text>
-                  <View style={s.dividerLine} />
-                </View>
-
-                <View style={s.socialRow}>
-                  <Pressable
-                    onPress={() => handleOAuthLogin('google')}
-                    style={({ pressed }) => [s.socialBtn, pressed && { opacity: 0.78 }]}
-                  >
-                    <Ionicons name="logo-google" size={17} color="#EA4335" />
-                    <Text style={s.socialBtnText}>Google</Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => handleOAuthLogin('apple')}
-                    style={({ pressed }) => [s.socialBtn, pressed && { opacity: 0.78 }]}
-                  >
-                    <Ionicons name="logo-apple" size={18} color="#0F172A" />
-                    <Text style={s.socialBtnText}>Apple</Text>
-                  </Pressable>
-                </View>
-
-                <View style={s.footerMeta}>
-                  <Text style={s.footerMetaText}>New to VoiceFlow? </Text>
-                  <Pressable onPress={() => router.push('/(auth)/register')}>
-                    <Text style={s.footerMetaLink}>Register</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : (
-              <View style={s.stepWrap}>
-                <View style={s.titleBlock}>
-                  <Text style={s.cardTitle}>Enter 6-Digit Code</Text>
-                  <View style={s.emailPill}>
-                    <Text style={s.emailPillText} numberOfLines={1}>{email}</Text>
-                  </View>
-                  <Text style={s.cardSub}>We sent a security code. Type it directly below to log in (do not click any localhost links).</Text>
-                </View>
-
-                <View style={s.otpRow}>
-                  {otp.map((digit, i) => (
-                    <RNTextInput
-                      key={i}
-                      ref={(r) => { otpRefs.current[i] = r }}
-                      value={digit}
-                      onChangeText={(v) => handleOtpChange(v, i)}
-                      onKeyPress={(e) => handleOtpKeyPress(e, i)}
-                      style={[
-                        s.otpBox,
-                        digit ? { borderColor: ACCENT, backgroundColor: '#EFF6FF', color: '#1E3A8A', fontWeight: '800' } : null
-                      ]}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      selectTextOnFocus
-                      caretHidden
-                      editable={!loading}
-                    />
-                  ))}
-                </View>
-
-                {error ? (
-                  <View style={s.errorBox}>
-                    <Ionicons name="alert-circle" size={16} color={ERROR} style={{ marginRight: 6 }} />
-                    <Text style={{ color: ERROR, fontSize: 13, fontWeight: '500', flex: 1 }}>{error}</Text>
-                  </View>
-                ) : null}
-
                 <Pressable
-                  onPress={() => handleVerifyOtp(otp.join(''))}
-                  disabled={loading || otp.includes('')}
-                  style={({ pressed }) => ({
-                    opacity: (loading || otp.includes('')) ? 0.45 : pressed ? 0.88 : 1,
-                    borderRadius: 14, overflow: 'hidden',
-                  })}
+                  onPress={() => handleOAuthLogin('apple')}
+                  style={({ pressed }) => [s.socialBtn, pressed && { opacity: 0.78 }]}
                 >
-                  <LinearGradient
-                    colors={[ACCENT, '#1D4ED8']}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                    style={s.btn}
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={s.btnText}>Verify Code</Text>
-                    )}
-                  </LinearGradient>
+                  <Ionicons name="logo-apple" size={18} color="#0F172A" />
+                  <Text style={s.socialBtnText}>Apple</Text>
                 </Pressable>
-
-                <View style={s.otpMeta}>
-                  <Pressable onPress={handleResend} disabled={cooldown > 0} hitSlop={10}>
-                    <Text style={[s.resendText, cooldown > 0 && { color: '#94A3B8' }]}>
-                      {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
-                    </Text>
-                  </Pressable>
-                  <Text style={{ color: '#E2E8F0' }}>·</Text>
-                  <Pressable onPress={goBack} hitSlop={10}>
-                    <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '600' }}>Change email</Text>
-                  </Pressable>
-                </View>
               </View>
-            )}
+
+              <View style={s.footerMeta}>
+                <Text style={s.footerMetaText}>New to VoiceFlow? </Text>
+                <Pressable onPress={() => router.push('/(auth)/register')}>
+                  <Text style={s.footerMetaLink}>Register</Text>
+                </Pressable>
+              </View>
+            </View>
           </Animated.View>
 
           {/* Legal / Terms footer */}

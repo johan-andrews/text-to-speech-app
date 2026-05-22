@@ -16,9 +16,10 @@ interface MicButtonProps {
   onPress: () => void
   onLongPress?: () => void
   onPressOut?: () => void
+  color?: string
 }
 
-export default function MicButton({ state, onPress, onLongPress, onPressOut }: MicButtonProps) {
+export default function MicButton({ state, onPress, onLongPress, onPressOut, color }: MicButtonProps) {
   const scale = useSharedValue(1)
   const pulseScale = useSharedValue(1)
   const pulseOpacity = useSharedValue(0.4)
@@ -66,7 +67,7 @@ export default function MicButton({ state, onPress, onLongPress, onPressOut }: M
   return (
     <View style={s.container}>
       {state === 'recording' && (
-        <Animated.View style={[s.pulseRing, pulseStyle]} />
+        <Animated.View style={[s.pulseRing, pulseStyle, { backgroundColor: color || ERROR }]} />
       )}
       <Animated.View style={[buttonStyle]}>
         <Pressable
@@ -76,8 +77,8 @@ export default function MicButton({ state, onPress, onLongPress, onPressOut }: M
           onPressOut={handlePressOut}
           style={[
             s.button,
-            state === 'idle' && [s.buttonIdle, { backgroundColor: ACCENT }],
-            state === 'recording' && [s.buttonRecording, { backgroundColor: ERROR }],
+            state === 'idle' && [s.buttonIdle, { backgroundColor: color || ACCENT }],
+            state === 'recording' && [s.buttonRecording, { backgroundColor: color || ERROR }],
             state === 'processing' && s.buttonProcessing,
           ]}
         >
@@ -88,7 +89,7 @@ export default function MicButton({ state, onPress, onLongPress, onPressOut }: M
             <Ionicons name="square" size={24} color="#FFFFFF" style={s.stopIcon} />
           )}
           {state === 'processing' && (
-            <ActivityIndicator size="large" color={ACCENT} />
+            <ActivityIndicator size="large" color={color || ACCENT} />
           )}
         </Pressable>
       </Animated.View>

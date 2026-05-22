@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, Modal, Share } from 'react-native'
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, Modal, Share, TextInput as RNTextInput } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
@@ -55,7 +55,7 @@ export default function DictateScreen() {
   const [accountModalVisible, setAccountModalVisible] = useState(false)
   const [copied, setCopied] = useState(false)
   
-  // Local state for last transcribed result
+  // Local state for last transcribed result metadata (provider, warnings, etc.)
   const [localResult, setLocalResult] = useState<{
     rawText: string
     cleanedText: string
@@ -64,6 +64,9 @@ export default function DictateScreen() {
     warnings: string[]
   } | null>(null)
   
+  // Editable text box value state
+  const [transcriptionValue, setTranscriptionValue] = useState('')
+
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isSavedLocally, setIsSavedLocally] = useState(false)
@@ -108,6 +111,9 @@ export default function DictateScreen() {
           })
           setIsSavedLocally(true)
 
+          // Append to existing transcription value!
+          setTranscriptionValue(prev => prev ? `${prev}\n${output.text}` : output.text)
+
           // Auto-save to history immediately!
           if (userId) {
             const title = output.text.slice(0, 60) || 'New Dictation'
@@ -130,23 +136,22 @@ export default function DictateScreen() {
       }
     } else {
       clearError()
-      setLocalResult(null)
       startRecording()
     }
   }
 
   const handleCopy = async () => {
-    if (!localResult) return
-    await Clipboard.setStringAsync(localResult.cleanedText)
+    if (!transcriptionValue) return
+    await Clipboard.setStringAsync(transcriptionValue)
     setCopied(true)
     setTimeout(() => setCopied(false), 1200)
   }
 
   const handleShare = async () => {
-    if (!localResult) return
+    if (!transcriptionValue) return
     try {
       await Share.share({
-        message: localResult.cleanedText,
+        message: transcriptionValue,
       })
     } catch (e) {
       console.warn('Failed to share:', e)
@@ -162,6 +167,7 @@ export default function DictateScreen() {
   }
 
   const handleClear = () => {
+    setTranscriptionValue('')
     setLocalResult(null)
     setIsSavedLocally(false)
     clearError()
@@ -222,7 +228,7 @@ export default function DictateScreen() {
 
           {/* Account Icon */}
           <Pressable onPress={() => setAccountModalVisible(true)} style={s.accountIconBtn}>
-            <Ionicons name="person-circle-outline" size={28} color={ACCENT} />
+            <Ionicons name="person-circle-outline" size={28} color={config.mode === 'agent' ? '#8B5CF6' : ACCENT} />
           </Pressable>
         </View>
       </View>
@@ -245,7 +251,7 @@ export default function DictateScreen() {
 
         <Pressable
           onPress={() => updateConfig({ mode: 'agent' })}
-          style={[s.modeBtn, config.mode === 'agent' && s.modeBtnActive]}
+          style={[s.modeBtn, config.mode === 'agent' && s.modeBtnActiveAgent]}
         >
           <Ionicons 
             name="sparkles-outline" 
@@ -258,10 +264,8 @@ export default function DictateScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[s.scrollContent, { paddingBottom: TAB_BAR_CLEARANCE + 30 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Main Single Frame View */}
+      <View style={[s.mainFrame, { paddingBottom: TAB_BAR_CLEARANCE + 12 }]}>
         {/* Offline notice */}
         {!isOnline && (
           <Card style={s.offlineCard}>
@@ -274,53 +278,50 @@ export default function DictateScreen() {
 
         {/* Waveform / Visualizer */}
         <View style={s.visualizerSection}>
-          <WaveformVisualizer isRecording={isRecording} />
+          <WaveformVisualizer isRecording={isRecording} color={config.mode === 'agent' ? '#8B5CF6' : undefined} />
           {isRecording && (
-            <Text style={s.timerText}>{formatTimer(durationMs)}</Text>
+            <Text style={[s.timerText, config.mode === 'agent' && { color: '#8B5CF6' }]}>{formatTimer(durationMs)}</Text>
           )}
         </View>
 
-        {/* Mic Button Row (Static, Flow layout - never overlaps tools!) */}
-        <View style={s.micButtonRowStatic}>
-          <MicButton
-            state={isRecording ? 'recording' : recordingState === 'stopping' || isTranscribing ? 'processing' : 'idle'}
-            onPress={handleMicPress}
-          />
-        </View>
-
-        {/* Transcription preview container */}
-        <Card style={s.previewCard}>
-          <ScrollView nestedScrollEnabled style={s.previewScroll}>
+        {/* Transcription preview container (Text Box) */}
+        <Card style={[
+          s.previewCard,
+          config.mode === 'agent' && s.previewCardAgent
+        ]}>
+          <ScrollView nestedScrollEnabled style={s.previewScroll} showsVerticalScrollIndicator={true}>
             {isTranscribing ? (
               <View style={s.loadingContainer}>
-                <ActivityIndicator size="small" color={ACCENT} />
+                <ActivityIndicator size="small" color={config.mode === 'agent' ? '#8B5CF6' : ACCENT} />
                 <Text style={s.loadingText}>
                   {config.mode === 'agent' ? "AI Agent is thinking..." : "Transcribing audio..."}
                 </Text>
               </View>
             ) : recordingState === 'requesting' || recordingState === 'stopping' ? (
               <View style={s.loadingContainer}>
-                <ActivityIndicator size="small" color={ACCENT} />
+                <ActivityIndicator size="small" color={config.mode === 'agent' ? '#8B5CF6' : ACCENT} />
                 <Text style={s.loadingText}>Initializing recording...</Text>
               </View>
             ) : recordingState === 'recording' ? (
-              <Text style={s.recordingPlaceholder}>Listening to your voice...</Text>
-            ) : localResult ? (
-              <Animated.View entering={FadeInUp.duration(300)}>
-                <Text style={s.transcriptionText}>{localResult.cleanedText}</Text>
-              </Animated.View>
+              <Text style={[s.recordingPlaceholder, config.mode === 'agent' && { color: '#8B5CF6' }]}>Listening to your voice...</Text>
             ) : (
-              <Text style={s.placeholder}>
-                {config.mode === 'agent' 
+              <RNTextInput
+                multiline
+                value={transcriptionValue}
+                onChangeText={setTranscriptionValue}
+                placeholder={config.mode === 'agent' 
                   ? "Tap the microphone and ask me anything..." 
                   : "Tap the microphone and start speaking…"}
-              </Text>
+                placeholderTextColor="#94A3B8"
+                style={s.transcriptionInput}
+                editable={!isTranscribing && recordingState !== 'recording'}
+              />
             )}
           </ScrollView>
         </Card>
 
         {/* Provider badge */}
-        {localResult && (
+        {localResult && !isTranscribing && recordingState !== 'recording' && (
           <ProviderBadge
             provider={localResult.provider}
             durationMs={localResult.durationMs}
@@ -329,18 +330,22 @@ export default function DictateScreen() {
         )}
 
         {/* Action Row */}
-        {localResult && (
+        {transcriptionValue.trim() !== '' && !isTranscribing && recordingState !== 'recording' && (
           <View style={s.actionRow}>
             <Pressable onPress={handleCopy} style={s.actionBtn}>
-              <Ionicons name={copied ? "checkmark-sharp" : "copy-outline"} size={20} color={copied ? "#16A34A" : "#1D4ED8"} />
-              <Text style={[s.actionBtnText, { color: copied ? '#16A34A' : '#1D4ED8' }]}>
+              <Ionicons 
+                name={copied ? "checkmark-sharp" : "copy-outline"} 
+                size={20} 
+                color={copied ? "#16A34A" : config.mode === 'agent' ? '#8B5CF6' : '#1D4ED8'} 
+              />
+              <Text style={[s.actionBtnText, { color: copied ? '#16A34A' : config.mode === 'agent' ? '#8B5CF6' : '#1D4ED8' }]}>
                 {copied ? "Copied!" : "Copy"}
               </Text>
             </Pressable>
 
             <Pressable onPress={handleShare} style={s.actionBtn}>
-              <Ionicons name="share-social-outline" size={20} color="#1D4ED8" />
-              <Text style={[s.actionBtnText, { color: '#1D4ED8' }]}>Share</Text>
+              <Ionicons name="share-social-outline" size={20} color={config.mode === 'agent' ? '#8B5CF6' : '#1D4ED8'} />
+              <Text style={[s.actionBtnText, { color: config.mode === 'agent' ? '#8B5CF6' : '#1D4ED8' }]}>Share</Text>
             </Pressable>
 
             <Pressable onPress={handleClear} style={s.actionBtn}>
@@ -349,7 +354,16 @@ export default function DictateScreen() {
             </Pressable>
           </View>
         )}
-      </ScrollView>
+
+        {/* Mic Button Row (Static, Flow layout below tools!) */}
+        <View style={s.micButtonRowStatic}>
+          <MicButton
+            state={isRecording ? 'recording' : recordingState === 'stopping' || isTranscribing ? 'processing' : 'idle'}
+            onPress={handleMicPress}
+            color={config.mode === 'agent' ? '#8B5CF6' : undefined}
+          />
+        </View>
+      </View>
 
       {/* Account Modal */}
       <Modal
@@ -492,7 +506,8 @@ const s = StyleSheet.create({
     color: ACCENT,
     fontWeight: '700',
   },
-  scrollContent: {
+  mainFrame: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
   },
@@ -525,16 +540,34 @@ const s = StyleSheet.create({
     marginTop: -10,
   },
   previewCard: {
-    minHeight: 180,
-    maxHeight: 280,
+    flex: 1,
+    minHeight: 150,
     backgroundColor: '#F8FAFC',
     borderColor: BORDER,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
   },
+  previewCardAgent: {
+    borderColor: '#C084FC',
+    borderWidth: 1.5,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+  },
   previewScroll: {
     flex: 1,
+  },
+  transcriptionInput: {
+    flex: 1,
+    color: TEXT_PRIMARY,
+    fontSize: 14.5,
+    lineHeight: 22,
+    textAlignVertical: 'top',
+    padding: 0,
+    margin: 0,
   },
   placeholder: {
     fontSize: 14,
@@ -616,6 +649,14 @@ const s = StyleSheet.create({
   },
   modeBtnActive: {
     backgroundColor: ACCENT,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeBtnActiveAgent: {
+    backgroundColor: '#8B5CF6',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
