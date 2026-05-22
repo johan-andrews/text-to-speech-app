@@ -14,10 +14,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const { config, updateConfig } = useTranscription()
 
-  // Toggle settings
-  const [aiCleanup, setAiCleanup] = useState(true)
-  const [voiceCommands, setVoiceCommands] = useState(true)
-  const [autoSave, setAutoSave] = useState(true)
+
 
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -89,8 +86,8 @@ export default function SettingsScreen() {
               <Text style={s.preferenceSub}>Converts commands like "new paragraph" and "comma" into punctuation.</Text>
             </View>
             <Switch
-              value={voiceCommands}
-              onValueChange={setVoiceCommands}
+              value={config.voiceCommands !== false}
+              onValueChange={(val) => updateConfig({ voiceCommands: val })}
               trackColor={{ true: ACCENT }}
               style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
               ios_backgroundColor="#CBD5E1"
@@ -103,8 +100,8 @@ export default function SettingsScreen() {
               <Text style={s.preferenceSub}>Saves transcriptions directly to database logs once completed.</Text>
             </View>
             <Switch
-              value={autoSave}
-              onValueChange={setAutoSave}
+              value={config.autoSave !== false}
+              onValueChange={(val) => updateConfig({ autoSave: val })}
               trackColor={{ true: ACCENT }}
               style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
               ios_backgroundColor="#CBD5E1"

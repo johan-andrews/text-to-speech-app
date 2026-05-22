@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { demoUser } from '@/lib/mockData'
 import { getInitials } from '@/lib/utils'
@@ -42,5 +42,25 @@ export function useProfile() {
             initials: demoUser.initials,
             planType: 'free',
         },
+    })
+}
+
+export function useUpdateProfile() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (displayName: string) => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Not authenticated')
+
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({ id: user.id, display_name: displayName, updated_at: new Date() })
+            
+            if (error) throw error
+            return displayName
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['profile'] })
+        }
     })
 }

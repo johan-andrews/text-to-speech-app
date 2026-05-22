@@ -116,6 +116,7 @@ export default function HistoryScreen() {
             session={item}
             onPress={() => handleCardPress(item)}
             onStar={() => handleToggleStar(item)}
+            onDelete={() => deleteSession(item.id)}
           />
         )}
         contentContainerStyle={[s.listContent, { paddingBottom: TAB_BAR_CLEARANCE + 20 }]}

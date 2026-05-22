@@ -92,3 +92,20 @@ export function useToggleStar() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dictation_history'] }),
   })
 }
+
+export function useUpdateSession() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, raw_text, cleaned_text, title }: { id: string; raw_text?: string; cleaned_text?: string; title?: string }) => {
+      const { data, error } = await supabase
+        .from('dictation_sessions')
+        .update({ raw_text, cleaned_text, title, updated_at: new Date() })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dictation_history'] }),
+  })
+}

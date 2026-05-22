@@ -8,6 +8,8 @@ export interface TranscriptionConfig {
   openaiApiKey?: string
   language?: string
   aiCleanup?: boolean
+  voiceCommands?: boolean
+  autoSave?: boolean
   mode?: 'transcriber' | 'agent'
 }
 
@@ -24,6 +26,8 @@ export const DEFAULT_CONFIG: TranscriptionConfig = {
   openaiApiKey: 'YOUR_OPENAI_API_KEY_HERE',
   language: 'en',
   aiCleanup: true,
+  voiceCommands: true,
+  autoSave: true,
   mode: 'transcriber',
 }
 

@@ -15,7 +15,7 @@ import ProviderBadge from '@/components/ProviderBadge'
 
 import { useTranscription } from '@/contexts/TranscriptionContext'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { useSaveSession } from '@/hooks/useDictationHistory'
+import { useSaveSession, useUpdateSession } from '@/hooks/useDictationHistory'
 import { useCustomVocabulary } from '@/hooks/useCustomVocabulary'
 import { useNetworkStatus } from '@/lib/useNetworkStatus'
 import { supabase } from '@/lib/supabase'
@@ -49,7 +49,12 @@ export default function DictateScreen() {
   const { transcribe, config, error: transcriptionError, clearError, updateConfig, isTranscribing } = useTranscription()
   const { state: recordingState, durationMs, startRecording, stopRecording, cancelRecording, isRecording } = useAudioRecorder()
   const { mutateAsync: saveSession, isPending: isSaving } = useSaveSession()
+  const { mutateAsync: updateSession } = useUpdateSession()
   const { data: vocabList = [] } = useCustomVocabulary()
+
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const selectionRef = useRef({ start: 0, end: 0 })
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [showLangDropdown, setShowLangDropdown] = useState(false)
   const [accountModalVisible, setAccountModalVisible] = useState(false)
@@ -89,6 +94,53 @@ export default function DictateScreen() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${tenths}`
   }
 
+  const handleTextChange = (text: string) => {
+    setTranscriptionValue(text)
+
+    // Reset session ID if the user manually clears the text box to empty
+    if (!text.trim()) {
+      setActiveSessionId(null)
+      return
+    }
+
+    // Only update in history if in AI Transcriber mode AND autoSave is active!
+    if (config.mode !== 'agent' && config.autoSave !== false && userId) {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
+      }
+      updateTimeoutRef.current = setTimeout(async () => {
+        try {
+          if (activeSessionId) {
+            await updateSession({
+              id: activeSessionId,
+              raw_text: text,
+              cleaned_text: text,
+              title: text.slice(0, 60) || 'Edited Dictation',
+            })
+          } else {
+            // Create new session if none exists
+            const title = text.slice(0, 60) || 'New Dictation'
+            const newSession = await saveSession({
+              user_id: userId,
+              raw_text: text,
+              cleaned_text: text,
+              provider: 'Manual Edit',
+              duration_ms: 0,
+              language: config.language || 'en',
+              title: title,
+              is_starred: false,
+            })
+            if (newSession?.id) {
+              setActiveSessionId(newSession.id)
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to auto-update manual edit to history:', e)
+        }
+      }, 800)
+    }
+  }
+
   const handleMicPress = async () => {
     if (isRecording) {
       const result = await stopRecording()
@@ -111,25 +163,50 @@ export default function DictateScreen() {
           })
           setIsSavedLocally(true)
 
-          // Append to existing transcription value!
-          setTranscriptionValue(prev => prev ? `${prev}\n${output.text}` : output.text)
+          // Insert transcribed text segment at the current cursor selection!
+          const { start, end } = selectionRef.current
+          const before = transcriptionValue.substring(0, start)
+          const after = transcriptionValue.substring(end)
+          const spaceBefore = before && !before.endsWith('\n') && !before.endsWith(' ') ? ' ' : ''
+          const spaceAfter = after && !after.startsWith('\n') && !after.startsWith(' ') ? ' ' : ''
+          const insertedText = `${spaceBefore}${output.text}${spaceAfter}`
+          const newText = before + insertedText + after
+          setTranscriptionValue(newText)
 
-          // Auto-save to history immediately!
-          if (userId) {
-            const title = output.text.slice(0, 60) || 'New Dictation'
+          // Update cursor to end of new text segment
+          const newPos = start + insertedText.length
+          selectionRef.current = { start: newPos, end: newPos }
+
+          // Auto-save to history (Only if in AI Transcriber mode AND autoSave is enabled)
+          if (config.mode !== 'agent' && config.autoSave !== false && userId) {
             try {
-              await saveSession({
-                user_id: userId,
-                raw_text: output.text,
-                cleaned_text: output.text,
-                provider: output.provider,
-                duration_ms: output.durationMs,
-                language: config.language || 'en',
-                title: title,
-                is_starred: false,
-              })
+              if (activeSessionId) {
+                // Update existing active session in history!
+                await updateSession({
+                  id: activeSessionId,
+                  raw_text: newText,
+                  cleaned_text: newText,
+                  title: newText.slice(0, 60) || 'New Dictation',
+                })
+              } else {
+                // Create a brand new session in history!
+                const title = newText.slice(0, 60) || 'New Dictation'
+                const newSession = await saveSession({
+                  user_id: userId,
+                  raw_text: newText,
+                  cleaned_text: newText,
+                  provider: output.provider,
+                  duration_ms: output.durationMs,
+                  language: config.language || 'en',
+                  title: title,
+                  is_starred: false,
+                })
+                if (newSession?.id) {
+                  setActiveSessionId(newSession.id)
+                }
+              }
             } catch (e) {
-              console.warn('Failed to auto-save session:', e)
+              console.warn('Failed to save session in history:', e)
             }
           }
         }
@@ -170,6 +247,7 @@ export default function DictateScreen() {
     setTranscriptionValue('')
     setLocalResult(null)
     setIsSavedLocally(false)
+    setActiveSessionId(null) // Reset session ID for a fresh box!
     clearError()
   }
 
@@ -308,7 +386,10 @@ export default function DictateScreen() {
               <RNTextInput
                 multiline
                 value={transcriptionValue}
-                onChangeText={setTranscriptionValue}
+                onChangeText={handleTextChange}
+                onSelectionChange={(e) => {
+                  selectionRef.current = e.nativeEvent.selection
+                }}
                 placeholder={config.mode === 'agent' 
                   ? "Tap the microphone and ask me anything..." 
                   : "Tap the microphone and start speaking…"}

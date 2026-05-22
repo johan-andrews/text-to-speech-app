@@ -76,7 +76,9 @@ export function TranscriptionProvider({ children }: { children: React.ReactNode 
       const raw = await transcribeAudio(audioUri, state.config, state.config.language || 'en')
 
       // Step 2: Parse voice commands
-      const { processedText } = parseVoiceCommands(raw.text)
+      const processedText = state.config.voiceCommands !== false
+        ? parseVoiceCommands(raw.text).processedText
+        : raw.text
 
       // Step 3: AI cleanup
       let cleanedText = processedText
@@ -86,7 +88,7 @@ export function TranscriptionProvider({ children }: { children: React.ReactNode 
           state.config.groqApiKey ?? '',
           { 
             customVocabulary: customVocab, 
-            applyCommands: true,
+            applyCommands: state.config.voiceCommands !== false,
             mode: state.config.mode || 'transcriber'
           }
         )
