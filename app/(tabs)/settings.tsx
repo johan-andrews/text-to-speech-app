@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, Switch, Pressable, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 
 import { Text } from '@/components/ui/Text'
 import { Card } from '@/components/ui/Card'
@@ -10,11 +11,11 @@ import { supabase } from '@/lib/supabase'
 import { ACCENT, BACKGROUND, TEXT_PRIMARY, TEXT_SECONDARY, BORDER, ERROR } from '@/lib/theme'
 import { TAB_BAR_CLEARANCE } from '@/components/TabBar'
 
+const SETTINGS_COLOR = '#F59E0B' // Amber accent for settings tab
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const { config, updateConfig } = useTranscription()
-
-
 
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -35,24 +36,51 @@ export default function SettingsScreen() {
   }
 
   const LANGUAGES = [
-    { code: 'en', label: 'English' },
-    { code: 'es', label: 'Español' },
-    { code: 'fr', label: 'Français' },
-    { code: 'de', label: 'Deutsch' },
-    { code: 'pt', label: 'Português' },
-    { code: 'it', label: 'Italiano' },
-    { code: 'nl', label: 'Nederlands' },
-    { code: 'ru', label: 'Русский' },
-    { code: 'zh', label: '中文' },
-    { code: 'ja', label: '日本語' },
-    { code: 'ko', label: '한국어' },
-    { code: 'ar', label: 'العربية' },
-    { code: 'hi', label: 'हिन्दी' },
-    { code: 'tr', label: 'Türkçe' },
-    { code: 'pl', label: 'Polski' },
-    { code: 'sv', label: 'Svenska' },
-    { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'id', label: 'Bahasa Indonesia' },
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'es', label: 'Español', flag: '🇪🇸' },
+    { code: 'fr', label: 'Français', flag: '🇫🇷' },
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+    { code: 'pt', label: 'Português', flag: '🇧🇷' },
+    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+    { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+    { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+    { code: 'zh', label: '中文', flag: '🇨🇳' },
+    { code: 'ja', label: '日本語', flag: '🇯🇵' },
+    { code: 'ko', label: '한국어', flag: '🇰🇷' },
+    { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+    { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+    { code: 'pl', label: 'Polski', flag: '🇵🇱' },
+    { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
+    { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+    { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩' },
+  ]
+
+  const PREFERENCE_ITEMS = [
+    {
+      key: 'aiCleanup',
+      icon: 'sparkles-outline',
+      iconColor: '#8B5CF6',
+      title: 'AI Grammar Cleanup',
+      sub: 'Automatically fixes voice pauses, stutters, and structure using Llama-3.',
+      value: config.aiCleanup !== false,
+    },
+    {
+      key: 'voiceCommands',
+      icon: 'chatbubble-ellipses-outline',
+      iconColor: '#3B82F6',
+      title: 'Process Voice Commands',
+      sub: 'Converts commands like "new paragraph" and "comma" into punctuation.',
+      value: config.voiceCommands !== false,
+    },
+    {
+      key: 'autoSave',
+      icon: 'cloud-upload-outline',
+      iconColor: '#10B981',
+      title: 'Auto-save to History',
+      sub: 'Saves transcriptions directly to database logs once completed.',
+      value: config.autoSave !== false,
+    },
   ]
 
   return (
@@ -60,53 +88,32 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.title}>Settings</Text>
+        <View style={s.headerAccent} />
       </View>
 
       <ScrollView contentContainerStyle={[s.scrollContent, { paddingBottom: TAB_BAR_CLEARANCE + 40 }]} showsVerticalScrollIndicator={false}>
         {/* AI & Gating settings */}
         <Text style={s.sectionTitle}>Dictation Preferences</Text>
         <Card style={s.preferenceCard}>
-          <View style={s.preferenceRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.preferenceTitle}>AI Grammar Cleanup</Text>
-              <Text style={s.preferenceSub}>Automatically fixes voice pauses, stutters, and structure using Llama-3.</Text>
+          {PREFERENCE_ITEMS.map((item, idx) => (
+            <View key={item.key} style={[s.preferenceRow, idx > 0 && s.rowDivider]}>
+              <View style={[s.preferenceIconWrap, { backgroundColor: `${item.iconColor}12` }]}>
+                <Ionicons name={item.icon as any} size={18} color={item.iconColor} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.preferenceTitle}>{item.title}</Text>
+                <Text style={s.preferenceSub}>{item.sub}</Text>
+              </View>
+              <Switch
+                value={item.value}
+                onValueChange={(val) => updateConfig({ [item.key]: val })}
+                trackColor={{ true: item.iconColor, false: '#E2E8F0' }}
+                thumbColor="#FFFFFF"
+                style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
+                ios_backgroundColor="#CBD5E1"
+              />
             </View>
-            <Switch
-              value={config.aiCleanup !== false}
-              onValueChange={(val) => updateConfig({ aiCleanup: val })}
-              trackColor={{ true: ACCENT }}
-              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-              ios_backgroundColor="#CBD5E1"
-            />
-          </View>
-
-          <View style={[s.preferenceRow, s.rowDivider]}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.preferenceTitle}>Process Voice Commands</Text>
-              <Text style={s.preferenceSub}>Converts commands like "new paragraph" and "comma" into punctuation.</Text>
-            </View>
-            <Switch
-              value={config.voiceCommands !== false}
-              onValueChange={(val) => updateConfig({ voiceCommands: val })}
-              trackColor={{ true: ACCENT }}
-              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-              ios_backgroundColor="#CBD5E1"
-            />
-          </View>
-
-          <View style={[s.preferenceRow, s.rowDivider]}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.preferenceTitle}>Auto-save to History</Text>
-              <Text style={s.preferenceSub}>Saves transcriptions directly to database logs once completed.</Text>
-            </View>
-            <Switch
-              value={config.autoSave !== false}
-              onValueChange={(val) => updateConfig({ autoSave: val })}
-              trackColor={{ true: ACCENT }}
-              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-              ios_backgroundColor="#CBD5E1"
-            />
-          </View>
+          ))}
         </Card>
 
         {/* Language Preference */}
@@ -124,15 +131,16 @@ export default function SettingsScreen() {
                   onPress={() => updateConfig({ language: lang.code })}
                   style={[
                     s.langOptionBtn,
-                    isSelected && { borderColor: ACCENT, backgroundColor: 'rgba(96,165,250,0.06)' }
+                    isSelected && { borderColor: SETTINGS_COLOR, backgroundColor: `${SETTINGS_COLOR}0D` }
                   ]}
                 >
-                  <View style={[s.radioCircle, isSelected && { borderColor: ACCENT }]}>
-                    {isSelected && <View style={[s.radioInner, { backgroundColor: ACCENT }]} />}
-                  </View>
-                  <Text style={[s.langOptionText, isSelected && { color: ACCENT, fontWeight: '700' }]}>
+                  <Text style={s.langFlag}>{lang.flag}</Text>
+                  <Text style={[s.langOptionText, isSelected && { color: SETTINGS_COLOR, fontWeight: '700' }]}>
                     {lang.label}
                   </Text>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={16} color={SETTINGS_COLOR} style={{ marginLeft: 'auto' }} />
+                  )}
                 </Pressable>
               )
             })}
@@ -150,16 +158,19 @@ const s = StyleSheet.create({
     backgroundColor: BACKGROUND,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderColor: BORDER,
+    paddingTop: 14,
+    paddingBottom: 12,
+  },
+  headerAccent: {
+    height: 3,
+    borderRadius: 2,
+    marginTop: 8,
+    width: 40,
+    backgroundColor: '#F59E0B',
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: TEXT_PRIMARY,
     letterSpacing: -0.5,
@@ -176,7 +187,7 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 6,
   },
   sectionTitle: {
     fontSize: 11,
@@ -184,7 +195,7 @@ const s = StyleSheet.create({
     color: TEXT_SECONDARY,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginTop: 16,
+    marginTop: 12,
     marginBottom: 8,
   },
   card: {
@@ -193,47 +204,6 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderColor: BORDER,
     borderWidth: 1,
-  },
-  providerList: {
-    gap: 8,
-    marginBottom: 10,
-  },
-  providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: '#FFFFFF',
-  },
-  providerCardActive: {
-    borderColor: ACCENT,
-  },
-  radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  providerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-  },
-  providerSub: {
-    fontSize: 11.5,
-    color: TEXT_SECONDARY,
-    marginTop: 2,
   },
   preferenceCard: {
     padding: 16,
@@ -246,6 +216,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 8,
+    gap: 10,
+  },
+  preferenceIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -276,15 +254,60 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BORDER,
     backgroundColor: '#F8FAFC',
     minWidth: '47%',
+    gap: 6,
+  },
+  langFlag: {
+    fontSize: 16,
   },
   langOptionText: {
     fontSize: 12.5,
     color: TEXT_SECONDARY,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  providerList: {
+    gap: 8,
+    marginBottom: 10,
+  },
+  providerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: '#FFFFFF',
+  },
+  providerCardActive: {
+    borderColor: ACCENT,
+  },
+  providerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  providerSub: {
+    fontSize: 11.5,
+    color: TEXT_SECONDARY,
+    marginTop: 2,
   },
   accountRow: {
     flexDirection: 'row',

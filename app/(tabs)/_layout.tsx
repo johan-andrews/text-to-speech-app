@@ -10,6 +10,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: BG },
+        animation: 'shift',
         // Extra bottom padding so content clears the floating tab bar
         tabBarStyle: { height: TAB_BAR_HEIGHT },
       }}

@@ -277,6 +277,7 @@ export default function DictateScreen() {
         <View>
           <Text style={s.brandTitle}>VoiceFlow AI</Text>
           <Text style={s.brandTagline}>Speak. Think. Create.</Text>
+          <View style={[s.headerAccent, config.mode === 'agent' && { backgroundColor: '#8B5CF6' }]} />
         </View>
 
         <View style={s.headerRight}>
@@ -529,14 +530,20 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderColor: BORDER,
+    paddingTop: 14,
+    paddingBottom: 12,
+  },
+  headerAccent: {
+    height: 3,
+    borderRadius: 2,
+    marginTop: 6,
+    width: 40,
+    backgroundColor: '#3B82F6',
   },
   brandTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: TEXT_PRIMARY,
     letterSpacing: -0.4,

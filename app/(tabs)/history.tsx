@@ -14,6 +14,15 @@ import { TAB_BAR_CLEARANCE } from '@/components/TabBar'
 
 type FilterType = 'all' | 'starred' | 'groq' | 'deepgram' | 'openai' | 'native'
 
+const FILTER_COLORS: Record<FilterType, string> = {
+  all: '#8B5CF6',
+  starred: '#F59E0B',
+  groq: '#10B981',
+  deepgram: '#3B82F6',
+  openai: '#6366F1',
+  native: '#EC4899',
+}
+
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -54,32 +63,47 @@ export default function HistoryScreen() {
     })
   }, [history, searchQuery, activeFilter])
 
-  const renderFilterChip = (filter: FilterType, label: string) => {
+  const activeColor = FILTER_COLORS[activeFilter]
+
+  const renderFilterChip = (filter: FilterType, label: string, icon: string) => {
     const isActive = activeFilter === filter
+    const color = FILTER_COLORS[filter]
     return (
       <Pressable
         key={filter}
         onPress={() => setActiveFilter(filter)}
         style={[
           s.chip,
-          isActive && [s.chipActive, { backgroundColor: 'rgba(96,165,250,0.15)', borderColor: ACCENT }],
+          isActive && { backgroundColor: `${color}18`, borderColor: color },
         ]}
       >
-        <Text style={[s.chipText, isActive && { color: ACCENT, fontWeight: '700' }]}>{label}</Text>
+        <Ionicons
+          name={icon as any}
+          size={13}
+          color={isActive ? color : TEXT_SECONDARY}
+          style={{ marginRight: 4 }}
+        />
+        <Text style={[s.chipText, isActive && { color, fontWeight: '700' }]}>{label}</Text>
       </Pressable>
     )
   }
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Header with gradient accent */}
       <View style={s.header}>
-        <Text style={s.title}>History</Text>
+        <View style={s.headerContent}>
+          <Text style={s.title}>History</Text>
+          <View style={s.headerBadge}>
+            <Text style={s.headerBadgeText}>{history.length}</Text>
+          </View>
+        </View>
+        <View style={[s.headerAccent, { backgroundColor: activeColor }]} />
       </View>
 
       {/* Search Bar */}
       <View style={s.searchContainer}>
-        <Ionicons name="search" size={18} color={TEXT_SECONDARY} style={s.searchIcon} />
+        <Ionicons name="search" size={18} color={activeColor} style={s.searchIcon} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -87,6 +111,7 @@ export default function HistoryScreen() {
           placeholderTextColor="#94A3B8"
           style={s.searchInput}
           clearButtonMode="while-editing"
+          selectionColor={activeColor}
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
@@ -98,12 +123,12 @@ export default function HistoryScreen() {
       {/* Filter Row */}
       <View style={s.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
-          {renderFilterChip('all', 'All')}
-          {renderFilterChip('starred', 'Starred')}
-          {renderFilterChip('groq', 'Groq')}
-          {renderFilterChip('deepgram', 'Deepgram')}
-          {renderFilterChip('openai', 'OpenAI')}
-          {renderFilterChip('native', 'Native')}
+          {renderFilterChip('all', 'All', 'grid-outline')}
+          {renderFilterChip('starred', 'Starred', 'star')}
+          {renderFilterChip('groq', 'Groq', 'flash-outline')}
+          {renderFilterChip('deepgram', 'Deepgram', 'pulse-outline')}
+          {renderFilterChip('openai', 'OpenAI', 'sparkles-outline')}
+          {renderFilterChip('native', 'Native', 'phone-portrait-outline')}
         </ScrollView>
       </View>
 
@@ -122,12 +147,12 @@ export default function HistoryScreen() {
         contentContainerStyle={[s.listContent, { paddingBottom: TAB_BAR_CLEARANCE + 20 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={activeColor} />
         }
         ListEmptyComponent={
           <View style={s.emptyContainer}>
-            <View style={[s.emptyIconCircle, { backgroundColor: 'rgba(96,165,250,0.08)' }]}>
-              <Ionicons name="mic-outline" size={32} color={ACCENT} />
+            <View style={[s.emptyIconCircle, { backgroundColor: `${activeColor}14` }]}>
+              <Ionicons name="mic-outline" size={36} color={activeColor} />
             </View>
             <Text style={s.emptyTitle}>No dictations yet</Text>
             <Text style={s.emptySubtitle}>Tap the mic tab to record and transcribe your voice.</Text>
@@ -145,27 +170,47 @@ const s = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderColor: BORDER,
+    paddingTop: 14,
+    paddingBottom: 12,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerAccent: {
+    height: 3,
+    borderRadius: 2,
+    marginTop: 10,
+    width: 40,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: TEXT_PRIMARY,
     letterSpacing: -0.5,
+  },
+  headerBadge: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  headerBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#8B5CF6',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
     marginHorizontal: 20,
-    marginTop: 14,
-    height: 40,
+    height: 42,
   },
   searchIcon: {
     marginRight: 8,
@@ -174,7 +219,7 @@ const s = StyleSheet.create({
     flex: 1,
     height: '100%',
     color: TEXT_PRIMARY,
-    fontSize: 13.5,
+    fontSize: 14,
   },
   filterContainer: {
     marginVertical: 12,
@@ -184,8 +229,10 @@ const s = StyleSheet.create({
     gap: 8,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
@@ -210,23 +257,23 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: TEXT_PRIMARY,
     marginBottom: 6,
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
 })

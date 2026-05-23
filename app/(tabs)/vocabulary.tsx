@@ -14,6 +14,24 @@ import { TAB_BAR_CLEARANCE } from '@/components/TabBar'
 
 const CATEGORIES = ['Technical', 'Names', 'Medical', 'Legal', 'Product', 'Acronyms']
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Technical: '#3B82F6',
+  Names: '#EC4899',
+  Medical: '#EF4444',
+  Legal: '#F59E0B',
+  Product: '#8B5CF6',
+  Acronyms: '#10B981',
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  Technical: 'code-slash-outline',
+  Names: 'person-outline',
+  Medical: 'medkit-outline',
+  Legal: 'shield-checkmark-outline',
+  Product: 'cube-outline',
+  Acronyms: 'text-outline',
+}
+
 export default function VocabularyScreen() {
   const insets = useSafeAreaInsets()
   
@@ -79,9 +97,12 @@ export default function VocabularyScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.title}>Vocabulary</Text>
-        <Pressable onPress={() => setModalVisible(true)} style={[s.addBtn, { backgroundColor: 'rgba(96,165,250,0.1)' }]}>
-          <Ionicons name="add" size={20} color={ACCENT} />
+        <View>
+          <Text style={s.title}>Vocabulary</Text>
+          <View style={s.headerAccent} />
+        </View>
+        <Pressable onPress={() => setModalVisible(true)} style={s.addBtn}>
+          <Ionicons name="add-circle" size={20} color="#10B981" />
           <Text style={s.addBtnText}>Add Word</Text>
         </Pressable>
       </View>
@@ -94,30 +115,38 @@ export default function VocabularyScreen() {
       <FlatList
         data={vocabList}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Card style={s.card}>
-            <View style={s.cardLeft}>
-              <Text style={s.wordText}>{item.word}</Text>
-              {item.category && (
-                <View style={s.categoryBadge}>
-                  <Text style={s.categoryBadgeText}>{item.category}</Text>
+        renderItem={({ item }) => {
+          const catColor = CATEGORY_COLORS[item.category || 'Technical'] || ACCENT
+          const catIcon = CATEGORY_ICONS[item.category || 'Technical'] || 'text-outline'
+          return (
+            <Card style={s.card}>
+              <View style={[s.cardAccent, { backgroundColor: catColor }]} />
+              <View style={s.cardContent}>
+                <View style={s.cardLeft}>
+                  <Text style={s.wordText}>{item.word}</Text>
+                  {item.category && (
+                    <View style={[s.categoryBadge, { backgroundColor: `${catColor}15` }]}>
+                      <Ionicons name={catIcon as any} size={10} color={catColor} style={{ marginRight: 3 }} />
+                      <Text style={[s.categoryBadgeText, { color: catColor }]}>{item.category}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-            <Pressable onPress={() => handleDeleteWord(item.id, item.word)} style={s.deleteBtn} hitSlop={8}>
-              <Ionicons name="trash-outline" size={18} color={ERROR} />
-            </Pressable>
-          </Card>
-        )}
+                <Pressable onPress={() => handleDeleteWord(item.id, item.word)} style={s.deleteBtn} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={18} color={ERROR} />
+                </Pressable>
+              </View>
+            </Card>
+          )
+        }}
         contentContainerStyle={[s.listContent, { paddingBottom: TAB_BAR_CLEARANCE + 20 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#10B981" />
         }
         ListEmptyComponent={
           <View style={s.emptyContainer}>
-            <View style={[s.emptyIconCircle, { backgroundColor: 'rgba(96,165,250,0.08)' }]}>
-              <Ionicons name="book-outline" size={32} color={ACCENT} />
+            <View style={s.emptyIconCircle}>
+              <Ionicons name="book-outline" size={36} color="#10B981" />
             </View>
             <Text style={s.emptyTitle}>Custom vocabulary is empty</Text>
             <Text style={s.emptySubtitle}>Add technical terms, special names, or phrases you use often.</Text>
@@ -150,22 +179,31 @@ export default function VocabularyScreen() {
                 placeholderTextColor="#94A3B8"
                 style={s.input}
                 autoFocus
+                selectionColor="#10B981"
               />
 
               <Text style={s.label}>Category</Text>
               <View style={s.categoriesGrid}>
                 {CATEGORIES.map((cat) => {
                   const isCatSelected = selectedCategory === cat
+                  const catColor = CATEGORY_COLORS[cat]
+                  const catIcon = CATEGORY_ICONS[cat]
                   return (
                     <Pressable
                       key={cat}
                       onPress={() => setSelectedCategory(cat)}
                       style={[
                         s.categoryItem,
-                        isCatSelected && [s.categoryItemSelected, { borderColor: ACCENT, backgroundColor: 'rgba(96,165,250,0.1)' }],
+                        isCatSelected && { borderColor: catColor, backgroundColor: `${catColor}12` },
                       ]}
                     >
-                      <Text style={[s.categoryItemText, isCatSelected && { color: ACCENT, fontWeight: '700' }]}>
+                      <Ionicons
+                        name={catIcon as any}
+                        size={12}
+                        color={isCatSelected ? catColor : TEXT_SECONDARY}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={[s.categoryItemText, isCatSelected && { color: catColor, fontWeight: '700' }]}>
                         {cat}
                       </Text>
                     </Pressable>
@@ -204,52 +242,70 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderColor: BORDER,
+    paddingTop: 14,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: TEXT_PRIMARY,
     letterSpacing: -0.5,
   },
+  headerAccent: {
+    height: 3,
+    borderRadius: 2,
+    marginTop: 8,
+    width: 40,
+    backgroundColor: '#10B981',
+  },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    gap: 5,
+    marginTop: 2,
   },
   addBtnText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: ACCENT,
-    marginLeft: 4,
+    color: '#10B981',
   },
   sectionDescription: {
     fontSize: 12.5,
     color: TEXT_SECONDARY,
     lineHeight: 18,
     marginHorizontal: 20,
-    marginTop: 14,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 4,
   },
   card: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    padding: 0,
+    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderColor: BORDER,
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cardAccent: {
+    width: 4,
+  },
+  cardContent: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    marginBottom: 10,
-    backgroundColor: SURFACE,
-    borderColor: BORDER,
-    borderWidth: 1,
   },
   cardLeft: {
     flexDirection: 'row',
@@ -264,7 +320,8 @@ const s = StyleSheet.create({
     color: TEXT_PRIMARY,
   },
   categoryBadge: {
-    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -272,7 +329,6 @@ const s = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 10.5,
     fontWeight: '600',
-    color: TEXT_SECONDARY,
   },
   deleteBtn: {
     padding: 6,
@@ -284,24 +340,25 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
+    backgroundColor: 'rgba(16,185,129,0.08)',
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: TEXT_PRIMARY,
     marginBottom: 6,
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
   modalOverlay: {
     flex: 1,
@@ -363,6 +420,8 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,

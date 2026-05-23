@@ -90,9 +90,12 @@ export default function ProfileScreen() {
         >
             {/* Account Header with About */}
             <View style={s.headerRow}>
-                <Text style={s.headerTitle}>Account</Text>
+                <View>
+                    <Text style={s.headerTitle}>Account</Text>
+                    <View style={s.headerAccent} />
+                </View>
                 <Pressable onPress={() => setAboutModal(true)} style={s.aboutBtn}>
-                    <Ionicons name="information-circle-outline" size={18} color={ACCENT} />
+                    <Ionicons name="information-circle-outline" size={18} color="#EC4899" />
                     <Text style={s.aboutBtnText}>About App</Text>
                 </Pressable>
             </View>
@@ -184,17 +187,17 @@ export default function ProfileScreen() {
             <View style={s.developerSection}>
                 <Text style={s.developerText}>Developed By: Johan Andrews</Text>
                 <View style={s.socialIconsRow}>
-                    <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/johan-andrews-3b9505312/')} style={s.socialIconBtn}>
-                        <Ionicons name="logo-linkedin" size={20} color="#0A66C2" />
+                    <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/johan-andrews-3b9505312/')} style={[s.socialIconBtn, { backgroundColor: 'rgba(10,102,194,0.08)' }]}>
+                        <Ionicons name="logo-linkedin" size={18} color="#0A66C2" />
                     </Pressable>
-                    <Pressable onPress={() => Linking.openURL('https://www.instagram.com/johan_andrews?igsh=anRbmgzYmhnOXg0')} style={s.socialIconBtn}>
-                        <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                    <Pressable onPress={() => Linking.openURL('https://www.instagram.com/johan_andrews?igsh=anRbmgzYmhnOXg0')} style={[s.socialIconBtn, { backgroundColor: 'rgba(225,48,108,0.08)' }]}>
+                        <Ionicons name="logo-instagram" size={18} color="#E1306C" />
                     </Pressable>
-                    <Pressable onPress={() => Linking.openURL('https://github.com/Johan-Andrews')} style={s.socialIconBtn}>
-                        <Ionicons name="logo-github" size={20} color="#24292F" />
+                    <Pressable onPress={() => Linking.openURL('https://github.com/Johan-Andrews')} style={[s.socialIconBtn, { backgroundColor: 'rgba(36,41,47,0.08)' }]}>
+                        <Ionicons name="logo-github" size={18} color="#24292F" />
                     </Pressable>
-                    <Pressable onPress={() => Linking.openURL('mailto:johanandrews12@gmail.com')} style={s.socialIconBtn}>
-                        <Ionicons name="mail" size={20} color="#EA4335" />
+                    <Pressable onPress={() => Linking.openURL('mailto:johanandrews12@gmail.com')} style={[s.socialIconBtn, { backgroundColor: 'rgba(234,67,53,0.08)' }]}>
+                        <Ionicons name="mail" size={18} color="#EA4335" />
                     </Pressable>
                 </View>
             </View>
@@ -302,26 +305,34 @@ const s = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingVertical: 4,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '800',
         color: TEXT_PRIMARY,
         letterSpacing: -0.5,
     },
+    headerAccent: {
+        height: 3,
+        borderRadius: 2,
+        marginTop: 8,
+        width: 40,
+        backgroundColor: '#EC4899',
+    },
     aboutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+        backgroundColor: 'rgba(236, 72, 153, 0.08)',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,
         gap: 4,
+        marginTop: 2,
     },
     aboutBtnText: {
-        color: '#8B5CF6',
+        color: '#EC4899',
         fontSize: 12,
         fontWeight: '700',
     },
@@ -332,12 +343,12 @@ const s = StyleSheet.create({
         paddingVertical: 10,
     },
     avatarWrap: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: ACCENT,
+        backgroundColor: '#EC4899',
         marginBottom: 2,
     },
     avatarText: { fontSize: 24, fontWeight: '800', color: '#fff' },
@@ -438,9 +449,11 @@ const s = StyleSheet.create({
         gap: 16,
     },
     socialIconBtn: {
-        padding: 8,
-        backgroundColor: 'rgba(100, 116, 139, 0.05)',
-        borderRadius: 999,
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
     },
 
     // Modal & About Styling

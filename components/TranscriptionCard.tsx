@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useCallback } from 'react'
 import { StyleSheet, Pressable, View, Animated, PanResponder, Dimensions } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Card } from '@/components/ui/Card'
@@ -22,84 +22,100 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
   const currentTranslation = useRef(0)
   const startX = useRef(0)
+  const isSwiping = useRef(false)
 
-  // Track the actual current value to help with multi-stage gestures
-  translateX.addListener(({ value }) => {
-    currentTranslation.current = value
-  })
+  // Track the actual current value
+  React.useEffect(() => {
+    const id = translateX.addListener(({ value }) => {
+      currentTranslation.current = value
+    })
+    return () => translateX.removeListener(id)
+  }, [])
+
+  const snapBack = useCallback(() => {
+    setIsDeleteConfirmVisible(false)
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      bounciness: 5,
+      speed: 14,
+    }).start()
+  }, [translateX])
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Fast horizontal swipe detection
-        return Math.abs(gestureState.dx) > 6 && Math.abs(gestureState.dy) < 6
+      onMoveShouldSetPanResponder: (_, gs) => {
+        // Require clear horizontal intent
+        if (Math.abs(gs.dx) > 8 && Math.abs(gs.dy) < 10) {
+          isSwiping.current = true
+          return true
+        }
+        return false
       },
       onPanResponderGrant: () => {
-        // Record starting position of this gesture segment
         startX.current = currentTranslation.current
       },
-      onPanResponderMove: (_, gestureState) => {
-        const totalTranslation = startX.current + gestureState.dx
+      onPanResponderMove: (_, gs) => {
+        const raw = startX.current + gs.dx
 
-        // Clamp values and add smooth friction beyond threshold limits
-        let targetX = totalTranslation
-        if (totalTranslation < CONFIRM_SPACE - 20) {
-          // Friction dragging past delete button (-120px)
-          targetX = CONFIRM_SPACE - 20 + (totalTranslation - (CONFIRM_SPACE - 20)) * 0.25
-        } else if (totalTranslation > SWIPE_THRESHOLD + 20) {
-          // Friction dragging past star swipe threshold (+80px)
-          targetX = SWIPE_THRESHOLD + 20 + (totalTranslation - (SWIPE_THRESHOLD + 20)) * 0.25
+        // Apply friction at extremes
+        let targetX = raw
+        if (raw < CONFIRM_SPACE - 20) {
+          targetX = CONFIRM_SPACE - 20 + (raw - (CONFIRM_SPACE - 20)) * 0.2
+        } else if (raw > SWIPE_THRESHOLD + 30) {
+          targetX = SWIPE_THRESHOLD + 30 + (raw - (SWIPE_THRESHOLD + 30)) * 0.2
         }
 
         translateX.setValue(targetX)
       },
-      onPanResponderRelease: (_, gestureState) => {
-        const finalDx = currentTranslation.current
+      onPanResponderRelease: (_, gs) => {
+        isSwiping.current = false
+        const pos = currentTranslation.current
 
-        if (finalDx < -45) {
-          // Swiped left -> Snap to delete confirm stop
+        if (pos < -45) {
+          // Swiped left → show delete confirm
           setIsDeleteConfirmVisible(true)
           Animated.spring(translateX, {
             toValue: CONFIRM_SPACE,
             useNativeDriver: true,
-            bounciness: 4,
-            speed: 12,
+            bounciness: 3,
+            speed: 14,
           }).start()
-        } else if (finalDx > SWIPE_THRESHOLD) {
-          // Swiped right -> Star/Unstar triggers and snap back to center
+        } else if (pos > SWIPE_THRESHOLD) {
+          // Swiped right → toggle star and snap back
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
-            bounciness: 4,
-            speed: 12,
+            bounciness: 5,
+            speed: 14,
           }).start(() => {
             onStar()
           })
         } else {
-          // Snap back to 0
+          // Snap back to center
           setIsDeleteConfirmVisible(false)
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
-            bounciness: 4,
-            speed: 12,
+            bounciness: 5,
+            speed: 14,
           }).start()
         }
       },
     })
   ).current
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     Animated.timing(translateX, {
       toValue: -SCREEN_WIDTH,
-      duration: 150,
+      duration: 200,
       useNativeDriver: true,
     }).start(() => {
       setIsDeleteConfirmVisible(false)
       if (onDelete) onDelete()
     })
-  }
+  }, [onDelete, translateX])
 
   const dateStr = new Date(session.created_at).toLocaleDateString(undefined, {
     month: 'short',
@@ -111,59 +127,54 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
 
   const previewText = session.cleaned_text || session.raw_text || ''
 
-  // Dynamic right side underlay color (Star is Green, Unstar is Orange)
-  const starUnderlayColor = session.is_starred ? '#F97316' : '#22C55E'
+  // Underlay colors
+  const starUnderlayColor = session.is_starred ? '#F97316' : '#10B981'
 
-  // Interpolations for background action underlays to prevent idle bleed-through
+  // Opacity interpolations — hide underlays at rest
   const leftOpacity = translateX.interpolate({
-    inputRange: [-100, -20, 0],
-    outputRange: [1, 1, 0],
+    inputRange: [-100, -15, 0],
+    outputRange: [1, 0.8, 0],
     extrapolate: 'clamp',
   })
 
   const rightOpacity = translateX.interpolate({
-    inputRange: [0, 20, 60],
-    outputRange: [0, 1, 1],
+    inputRange: [0, 15, 60],
+    outputRange: [0, 0.8, 1],
+    extrapolate: 'clamp',
+  })
+
+  // Scale the star icon for visual delight
+  const starScale = translateX.interpolate({
+    inputRange: [0, 40, 80],
+    outputRange: [0.6, 1, 1.15],
+    extrapolate: 'clamp',
+  })
+
+  // Scale the delete icon
+  const deleteScale = translateX.interpolate({
+    inputRange: [-100, -50, 0],
+    outputRange: [1.1, 1, 0.6],
     extrapolate: 'clamp',
   })
 
   return (
     <View style={s.container}>
       {/* Background Actions Underlay */}
-      <View style={StyleSheet.absoluteFillObject}>
-        {/* Left swipe underlay (Delete action on swipe left) */}
-        <Animated.View 
-          style={[s.underlay, s.underlayLeft, { opacity: leftOpacity }]}
-          pointerEvents={isDeleteConfirmVisible ? 'auto' : 'none'}
-        >
-          {/* Cancel zone on the left */}
-          <Pressable 
-            onPress={() => {
-              setIsDeleteConfirmVisible(false)
-              Animated.spring(translateX, {
-                toValue: 0,
-                useNativeDriver: true,
-                bounciness: 4,
-                speed: 12,
-              }).start()
-            }}
-            style={s.underlayCancelZone} 
-          />
-          {/* Confirm delete button on the right */}
-          <Pressable onPress={handleConfirmDelete} style={s.deleteConfirmBtn}>
-            <View style={s.underlayActionContentLeft}>
-              <Ionicons name="trash" size={18} color="#FFFFFF" />
-              <Text style={s.underlayText}>Confirm</Text>
-            </View>
-          </Pressable>
+      <View style={[StyleSheet.absoluteFillObject, { overflow: 'hidden', borderRadius: 12 }]}>
+        {/* Left swipe underlay (Delete) */}
+        <Animated.View style={[s.underlay, s.underlayLeft, { opacity: leftOpacity }]}>
+          <Animated.View style={[s.underlayActionContentLeft, { transform: [{ scale: deleteScale }] }]}>
+            <Ionicons name="trash" size={20} color="#FFFFFF" />
+            <Text style={s.underlayText}>{isDeleteConfirmVisible ? 'Confirm' : 'Delete'}</Text>
+          </Animated.View>
         </Animated.View>
 
-        {/* Right swipe underlay (Star/Unstar action on swipe right) */}
+        {/* Right swipe underlay (Star/Unstar) */}
         <Animated.View style={[s.underlay, s.underlayRight, { backgroundColor: starUnderlayColor, opacity: rightOpacity }]}>
-          <View style={s.underlayActionContentRight}>
-            <Ionicons name={session.is_starred ? 'star-outline' : 'star'} size={18} color="#FFFFFF" />
+          <Animated.View style={[s.underlayActionContentRight, { transform: [{ scale: starScale }] }]}>
+            <Ionicons name={session.is_starred ? 'star-outline' : 'star'} size={20} color="#FFFFFF" />
             <Text style={s.underlayText}>{session.is_starred ? 'Unstar' : 'Star'}</Text>
-          </View>
+          </Animated.View>
         </Animated.View>
       </View>
 
@@ -171,21 +182,20 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
       <Animated.View
         style={{ transform: [{ translateX }] }}
         {...panResponder.panHandlers}
-        pointerEvents={isDeleteConfirmVisible ? 'none' : 'auto'}
       >
-        <Pressable 
+        <Pressable
           onPress={() => {
             if (isDeleteConfirmVisible) {
-              // Tap to cancel/close confirm
-              setIsDeleteConfirmVisible(false)
-              Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start()
+              // If delete confirm is showing, tap should either confirm or cancel
+              // We'll treat tap on card as cancel — swipe-back
+              snapBack()
             } else {
               onPress()
             }
           }}
         >
           <Card style={s.card}>
-            <View style={s.accentBorder} />
+            <View style={[s.accentBorder, session.is_starred && { backgroundColor: '#F59E0B' }]} />
             <View style={s.content}>
               <View style={s.header}>
                 <Text style={s.title} numberOfLines={1}>
@@ -194,7 +204,7 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
                 <Pressable onPress={onStar} hitSlop={8} style={s.starBtn}>
                   <Ionicons
                     name={session.is_starred ? 'star' : 'star-outline'}
-                    size={15}
+                    size={16}
                     color={session.is_starred ? WARNING : TEXT_SECONDARY}
                   />
                 </Pressable>
@@ -214,6 +224,20 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
           </Card>
         </Pressable>
       </Animated.View>
+
+      {/* Floating Confirm Delete Button — only when swiped open */}
+      {isDeleteConfirmVisible && (
+        <View style={s.confirmOverlay}>
+          <Pressable onPress={snapBack} style={s.confirmCancelZone} />
+          <Pressable
+            onPress={handleConfirmDelete}
+            style={s.confirmDeleteBtn}
+          >
+            <Ionicons name="trash" size={18} color="#FFFFFF" />
+            <Text style={s.confirmDeleteText}>Delete</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   )
 }
@@ -221,9 +245,9 @@ export default function TranscriptionCard({ session, onPress, onStar, onDelete }
 const s = StyleSheet.create({
   container: {
     position: 'relative',
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    marginBottom: 10,
+    borderRadius: 12,
+    overflow: 'visible',
   },
   card: {
     padding: 0,
@@ -231,37 +255,45 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 0,
     backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   accentBorder: {
-    width: 3,
+    width: 4,
     backgroundColor: ACCENT,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   title: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '700',
     color: TEXT_PRIMARY,
     flex: 1,
     marginRight: 6,
   },
   starBtn: {
-    padding: 1,
+    padding: 2,
   },
   preview: {
-    fontSize: 11.5,
+    fontSize: 12,
     color: TEXT_SECONDARY,
-    lineHeight: 15,
-    marginBottom: 4,
+    lineHeight: 16,
+    marginBottom: 6,
   },
   footer: {
     flexDirection: 'row',
@@ -270,17 +302,17 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   date: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: TEXT_SECONDARY,
   },
   badge: {
-    backgroundColor: 'rgba(96,165,250,0.08)',
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(96,165,250,0.1)',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '600',
     color: ACCENT,
   },
@@ -290,44 +322,55 @@ const s = StyleSheet.create({
     bottom: 0,
     width: '100%',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   underlayLeft: {
-    left: 0,
     right: 0,
-    flexDirection: 'row',
-    backgroundColor: ERROR,
+    backgroundColor: '#EF4444',
+    alignItems: 'flex-end',
   },
   underlayRight: {
     left: 0,
     alignItems: 'flex-start',
   },
-  deleteConfirmBtn: {
-    width: 100,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: ERROR,
-  },
   underlayActionContentLeft: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingRight: 20,
     gap: 2,
   },
   underlayActionContentRight: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 16,
-    gap: 4,
+    justifyContent: 'center',
+    paddingLeft: 20,
+    gap: 2,
   },
   underlayText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10.5,
   },
-  underlayCancelZone: {
+  // Floating confirm button overlay
+  confirmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    borderRadius: 12,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  confirmCancelZone: {
     flex: 1,
-    height: '100%',
-    backgroundColor: 'transparent',
+  },
+  confirmDeleteBtn: {
+    width: 100,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  confirmDeleteText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 11,
   },
 })
