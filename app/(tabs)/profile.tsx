@@ -4,6 +4,8 @@ import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import Constants from 'expo-constants'
+
 import { Text } from '@/components/ui/Text'
 import { Card } from '@/components/ui/Card'
 import { AlertModal } from '@/components/ui/AppModal'
@@ -44,6 +46,9 @@ export default function ProfileScreen() {
 
     // About modal state
     const [aboutModal, setAboutModal] = useState(false)
+
+    // Dynamic app version read directly from app.json
+    const appVersion = Constants.expoConfig?.version || '1.0.0'
 
     const expiryMs = customerInfo?.entitlements.active['premium']?.expirationDate
     const expiryDate = expiryMs
@@ -122,7 +127,7 @@ export default function ProfileScreen() {
                         <Ionicons name="create-outline" size={18} color={ACCENT} />
                     </Pressable>
                 </View>
-                
+
                 <Text style={s.metaText}>{profile?.email ?? demoUser.email}</Text>
             </Card>
 
@@ -175,9 +180,24 @@ export default function ProfileScreen() {
                 <Text style={s.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
             </Pressable>
 
-            <Text style={{ textAlign: 'center', color: '#64748B', fontSize: 13, marginTop: 24, marginBottom: 8 }}>
-              developed bu: <Text style={{ color: '#8B5CF6', fontWeight: '600', textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://www.linkedin.com/in/johan-andrews-3b9505312/')}>johan_andrews</Text>
-            </Text>
+            {/* Developer attribution with LinkedIn, Instagram, GitHub and Gmail row */}
+            <View style={s.developerSection}>
+                <Text style={s.developerText}>Developed By: Johan Andrews</Text>
+                <View style={s.socialIconsRow}>
+                    <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/johan-andrews-3b9505312/')} style={s.socialIconBtn}>
+                        <Ionicons name="logo-linkedin" size={20} color="#0A66C2" />
+                    </Pressable>
+                    <Pressable onPress={() => Linking.openURL('https://www.instagram.com/johan_andrews?igsh=anRbmgzYmhnOXg0')} style={s.socialIconBtn}>
+                        <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                    </Pressable>
+                    <Pressable onPress={() => Linking.openURL('https://github.com/Johan-Andrews')} style={s.socialIconBtn}>
+                        <Ionicons name="logo-github" size={20} color="#24292F" />
+                    </Pressable>
+                    <Pressable onPress={() => Linking.openURL('mailto:johanandrews12@gmail.com')} style={s.socialIconBtn}>
+                        <Ionicons name="mail" size={20} color="#EA4335" />
+                    </Pressable>
+                </View>
+            </View>
 
             {/* Edit Name Modal */}
             <Modal visible={editNameModal} transparent animationType="fade" onRequestClose={() => setEditNameModal(false)}>
@@ -211,12 +231,12 @@ export default function ProfileScreen() {
                         <View style={s.aboutHeader}>
                             <Ionicons name="sparkles" size={24} color="#8B5CF6" />
                             <Text style={s.aboutTitle}>VoiceFlow AI</Text>
-                            <Text style={s.aboutVersion}>Version 1.0.0</Text>
+                            <Text style={s.aboutVersion}>Version {appVersion}</Text>
                         </View>
-                        
+
                         <ScrollView style={s.aboutScroll} showsVerticalScrollIndicator={false}>
                             <Text style={s.aboutSectionHeading}>Features & Core Modules:</Text>
-                            
+
                             <View style={s.featureRow}>
                                 <Text style={s.featureEmoji}>🎙️</Text>
                                 <Text style={s.featureText}>Real-time speech transcription powered by leading models (Groq, Whisper, Deepgram).</Text>
@@ -278,7 +298,7 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-    container: { paddingHorizontal: 20, gap: 14 },
+    container: { paddingHorizontal: 20, gap: 8 },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -308,17 +328,17 @@ const s = StyleSheet.create({
     heroCard: {
         overflow: 'hidden',
         alignItems: 'center',
-        gap: 5,
-        paddingVertical: 16,
+        gap: 4,
+        paddingVertical: 10,
     },
     avatarWrap: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: ACCENT,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     avatarText: { fontSize: 24, fontWeight: '800', color: '#fff' },
     premiumDot: {
@@ -369,13 +389,14 @@ const s = StyleSheet.create({
     },
     manageBtnText: { color: ACCENT, fontSize: 12, fontWeight: '600' },
     upgradeCard: {
-        minHeight: 66,
+        minHeight: 56,
         borderRadius: 16,
         overflow: 'hidden',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         paddingHorizontal: 14,
+        paddingVertical: 6,
     },
     upgradeTitle: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
     upgradeSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 1 },
@@ -385,8 +406,8 @@ const s = StyleSheet.create({
         color: TEXT_TERTIARY,
         letterSpacing: 0.8,
         textTransform: 'uppercase',
-        marginTop: 3,
-        marginBottom: -4,
+        marginTop: 1,
+        marginBottom: -8,
     },
     sectionCard: { padding: 0, overflow: 'hidden' },
     signOutBtn: {
@@ -394,10 +415,34 @@ const s = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 7,
-        paddingVertical: 10,
+        paddingVertical: 6,
     },
     signOutText: { color: ERROR, fontSize: 14, fontWeight: '600' },
-    
+
+    // Developer & Social Icon Styling
+    developerSection: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        marginBottom: 2,
+        gap: 6,
+    },
+    developerText: {
+        color: '#64748B',
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    socialIconsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    socialIconBtn: {
+        padding: 8,
+        backgroundColor: 'rgba(100, 116, 139, 0.05)',
+        borderRadius: 999,
+    },
+
     // Modal & About Styling
     modalOverlay: {
         flex: 1,
@@ -453,7 +498,7 @@ const s = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
     },
-    
+
     // About Modal
     aboutModalContent: {
         width: '100%',

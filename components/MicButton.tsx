@@ -64,12 +64,22 @@ export default function MicButton({ state, onPress, onLongPress, onPressOut, col
     if (onPressOut) onPressOut()
   }
 
+  const dynamicBgColor = state === 'idle' 
+    ? (color || ACCENT) 
+    : state === 'recording' 
+      ? (color || ERROR) 
+      : '#FFFFFF';
+
   return (
     <View style={s.container}>
       {state === 'recording' && (
         <Animated.View style={[s.pulseRing, pulseStyle, { backgroundColor: color || ERROR }]} />
       )}
-      <Animated.View style={[buttonStyle]}>
+      <Animated.View style={[
+        buttonStyle, 
+        s.buttonContainer, 
+        { backgroundColor: dynamicBgColor }
+      ]}>
         <Pressable
           onPress={onPress}
           onLongPress={onLongPress}
@@ -77,9 +87,7 @@ export default function MicButton({ state, onPress, onLongPress, onPressOut, col
           onPressOut={handlePressOut}
           style={[
             s.button,
-            state === 'idle' && [s.buttonIdle, { backgroundColor: color || ACCENT }],
-            state === 'recording' && [s.buttonRecording, { backgroundColor: color || ERROR }],
-            state === 'processing' && s.buttonProcessing,
+            state === 'processing' && s.buttonProcessingBorder,
           ]}
         >
           {state === 'idle' && (
@@ -102,29 +110,27 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
   },
-  button: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  buttonContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  buttonIdle: {
-    // Primary light blue
+  button: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonRecording: {
-    // Red active state
-  },
-  buttonProcessing: {
-    backgroundColor: '#FFFFFF',
+  buttonProcessingBorder: {
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
   },
@@ -133,9 +139,9 @@ const s = StyleSheet.create({
   },
   pulseRing: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: ERROR,
     zIndex: -1,
   },

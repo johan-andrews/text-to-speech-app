@@ -55,6 +55,7 @@ export default function DictateScreen() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const selectionRef = useRef({ start: 0, end: 0 })
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<RNTextInput>(null)
 
   const [showLangDropdown, setShowLangDropdown] = useState(false)
   const [accountModalVisible, setAccountModalVisible] = useState(false)
@@ -214,6 +215,10 @@ export default function DictateScreen() {
     } else {
       clearError()
       startRecording()
+      // programmatically focus text input so cursor is visible during recording!
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
     }
   }
 
@@ -311,37 +316,6 @@ export default function DictateScreen() {
         </View>
       </View>
 
-      {/* Mode Switch Toolbar */}
-      <View style={s.modeToolbar}>
-        <Pressable
-          onPress={() => updateConfig({ mode: 'transcriber' })}
-          style={[s.modeBtn, (config.mode || 'transcriber') === 'transcriber' && s.modeBtnActive]}
-        >
-          <Ionicons 
-            name="document-text-outline" 
-            size={15} 
-            color={(config.mode || 'transcriber') === 'transcriber' ? '#FFFFFF' : '#64748B'} 
-          />
-          <Text style={[s.modeBtnText, (config.mode || 'transcriber') === 'transcriber' && s.modeBtnTextActive]}>
-            AI Transcriber
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => updateConfig({ mode: 'agent' })}
-          style={[s.modeBtn, config.mode === 'agent' && s.modeBtnActiveAgent]}
-        >
-          <Ionicons 
-            name="sparkles-outline" 
-            size={15} 
-            color={config.mode === 'agent' ? '#FFFFFF' : '#64748B'} 
-          />
-          <Text style={[s.modeBtnText, config.mode === 'agent' && s.modeBtnTextActive]}>
-            AI Agent
-          </Text>
-        </Pressable>
-      </View>
-
       {/* Main Single Frame View */}
       <View style={[s.mainFrame, { paddingBottom: TAB_BAR_CLEARANCE + 12 }]}>
         {/* Offline notice */}
@@ -353,6 +327,46 @@ export default function DictateScreen() {
             </Text>
           </Card>
         )}
+
+        {/* Mode Switch Toolbar */}
+        <View style={s.modeToolbar}>
+          <Pressable
+            onPress={() => updateConfig({ mode: 'transcriber' })}
+            style={[s.modeBtn, (config.mode || 'transcriber') === 'transcriber' && s.modeBtnActive]}
+          >
+            <Ionicons 
+              name="document-text-outline" 
+              size={15} 
+              color={(config.mode || 'transcriber') === 'transcriber' ? '#FFFFFF' : '#64748B'} 
+            />
+            <Text style={[s.modeBtnText, (config.mode || 'transcriber') === 'transcriber' && s.modeBtnTextActive]}>
+              AI Transcriber
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => updateConfig({ mode: 'agent' })}
+            style={[s.modeBtn, config.mode === 'agent' && s.modeBtnActiveAgent]}
+          >
+            <Ionicons 
+              name="sparkles-outline" 
+              size={15} 
+              color={config.mode === 'agent' ? '#FFFFFF' : '#64748B'} 
+            />
+            <Text style={[s.modeBtnText, config.mode === 'agent' && s.modeBtnTextActive]}>
+              AI Agent
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Mic Button Row (Static, Flow layout below tools!) */}
+        <View style={s.micButtonRowStatic}>
+          <MicButton
+            state={isRecording ? 'recording' : recordingState === 'stopping' || isTranscribing ? 'processing' : 'idle'}
+            onPress={handleMicPress}
+            color={config.mode === 'agent' ? '#8B5CF6' : undefined}
+          />
+        </View>
 
         {/* Waveform / Visualizer */}
         <View style={s.visualizerSection}>
@@ -380,10 +394,9 @@ export default function DictateScreen() {
                 <ActivityIndicator size="small" color={config.mode === 'agent' ? '#8B5CF6' : ACCENT} />
                 <Text style={s.loadingText}>Initializing recording...</Text>
               </View>
-            ) : recordingState === 'recording' ? (
-              <Text style={[s.recordingPlaceholder, config.mode === 'agent' && { color: '#8B5CF6' }]}>Listening to your voice...</Text>
             ) : (
               <RNTextInput
+                ref={inputRef}
                 multiline
                 value={transcriptionValue}
                 onChangeText={handleTextChange}
@@ -395,7 +408,8 @@ export default function DictateScreen() {
                   : "Tap the microphone and start speaking…"}
                 placeholderTextColor="#94A3B8"
                 style={s.transcriptionInput}
-                editable={!isTranscribing && recordingState !== 'recording'}
+                editable={!isTranscribing}
+                selectionColor={config.mode === 'agent' ? '#8B5CF6' : ACCENT}
               />
             )}
           </ScrollView>
@@ -436,14 +450,6 @@ export default function DictateScreen() {
           </View>
         )}
 
-        {/* Mic Button Row (Static, Flow layout below tools!) */}
-        <View style={s.micButtonRowStatic}>
-          <MicButton
-            state={isRecording ? 'recording' : recordingState === 'stopping' || isTranscribing ? 'processing' : 'idle'}
-            onPress={handleMicPress}
-            color={config.mode === 'agent' ? '#8B5CF6' : undefined}
-          />
-        </View>
       </View>
 
       {/* Account Modal */}
@@ -611,7 +617,7 @@ const s = StyleSheet.create({
   visualizerSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 12,
+    marginVertical: 6,
   },
   timerText: {
     fontSize: 28,
@@ -707,15 +713,16 @@ const s = StyleSheet.create({
   micButtonRowStatic: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 14,
+    marginTop: 8,
+    marginBottom: 4,
   },
   modeToolbar: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
     borderRadius: 999,
     padding: 4,
-    marginHorizontal: 24,
-    marginBottom: 12,
+    marginHorizontal: 4,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },

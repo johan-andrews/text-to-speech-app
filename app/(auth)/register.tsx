@@ -19,6 +19,9 @@ export default function RegisterScreen() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']) // 8-digit OTP
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,8 +29,12 @@ export default function RegisterScreen() {
   const otpRefs = useRef<(RNTextInput | null)[]>([])
 
   const handleRegister = async () => {
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
+    if (!fullName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       setError('Please fill in all fields.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
       return
     }
     if (password.length < 6) {
@@ -208,14 +215,53 @@ export default function RegisterScreen() {
                   {/* Password */}
                   <View style={s.fieldGroup}>
                     <Text style={s.label}>PASSWORD</Text>
-                    <RNTextInput
-                      value={password}
-                      onChangeText={(v) => { setPassword(v); setError(null) }}
-                      style={s.input}
-                      secureTextEntry
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
+                    <View style={s.inputContainer}>
+                      <RNTextInput
+                        value={password}
+                        onChangeText={(v) => { setPassword(v); setError(null) }}
+                        style={[s.input, s.inputWithIcon]}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      <Pressable
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={s.eyeIcon}
+                        hitSlop={12}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color="#64748B"
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  {/* Confirm Password */}
+                  <View style={s.fieldGroup}>
+                    <Text style={s.label}>CONFIRM PASSWORD</Text>
+                    <View style={s.inputContainer}>
+                      <RNTextInput
+                        value={confirmPassword}
+                        onChangeText={(v) => { setConfirmPassword(v); setError(null) }}
+                        style={[s.input, s.inputWithIcon]}
+                        secureTextEntry={!showConfirmPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      <Pressable
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={s.eyeIcon}
+                        hitSlop={12}
+                      >
+                        <Ionicons
+                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color="#64748B"
+                        />
+                      </Pressable>
+                    </View>
                   </View>
 
                   {error ? (
@@ -362,6 +408,20 @@ const s = StyleSheet.create({
     height: 52, backgroundColor: '#F8FAFC',
     borderWidth: 1, borderColor: BORDER, borderRadius: 14,
     paddingHorizontal: 16, color: '#0F172A', fontSize: 16,
+  },
+  inputContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  inputWithIcon: {
+    paddingRight: 48,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 14,
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   btn: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
