@@ -20,3 +20,4 @@ yarn-debug.*
 yarn-error.*
 local.properties
 .env
+
