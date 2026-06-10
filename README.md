@@ -14,9 +14,9 @@
 ---
 
 > ### 📲 Download the App
-><img src="assets/qrcode_expo.dev (1).png" width="200"/>
+><img src="assets/qrcode_expo.dev (2).png" width="200"/>
 >
-> **🔗 [Click here to download the APK (Preview Build)](https://expo.dev/accounts/johanandrews/projects/flowvoice-ai/builds/765276b5-52b1-4c24-a70c-7495125e4083)**
+> **🔗 [Click here to download the APK (Preview Build)](https://expo.dev/accounts/johanandrews/projects/flowvoice-ai/builds/51116819-0f6a-41ac-b0f4-f40806a7279f)**
 >
 > *Scan the QR code from your Android device or click the link above to install the preview build.*
 
