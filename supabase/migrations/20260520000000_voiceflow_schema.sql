@@ -28,9 +28,11 @@ create table if not exists custom_vocabulary (
 alter table dictation_sessions enable row level security;
 alter table custom_vocabulary enable row level security;
 
+drop policy if exists "Users manage own sessions" on dictation_sessions;
 create policy "Users manage own sessions"
   on dictation_sessions for all using (auth.uid() = user_id);
 
+drop policy if exists "Users manage own vocabulary" on custom_vocabulary;
 create policy "Users manage own vocabulary"
   on custom_vocabulary for all using (auth.uid() = user_id);
 

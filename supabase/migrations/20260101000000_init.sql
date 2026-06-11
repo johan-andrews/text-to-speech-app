@@ -8,7 +8,7 @@
 -- One row per auth.users entry. Auto-created via trigger on signup.
 -- Add app-specific columns here (e.g., bio, preferences, credits, etc.)
 
-create table public.profiles (
+create table if not exists public.profiles (
   id           uuid        primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url   text,
@@ -25,16 +25,19 @@ comment on table public.profiles is 'Per-user profile data, extended from auth.u
 alter table public.profiles enable row level security;
 
 -- Users can read any profile (adjust if profiles should be private)
+drop policy if exists "Profiles are publicly readable" on public.profiles;
 create policy "Profiles are publicly readable"
   on public.profiles for select
   using (true);
 
 -- Users can only update their own profile
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
 -- Users can insert their own profile (needed for manual upsert)
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
@@ -55,6 +58,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
@@ -71,6 +75,7 @@ begin
 end;
 $$;
 
+drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at
   before update on public.profiles
   for each row execute procedure public.set_updated_at();

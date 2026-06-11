@@ -10,15 +10,29 @@ alter table public.profiles add column if not exists plan_type text not null def
 
 -- ── Enums ────────────────────────────────────────────────────────────────────
 
-create type item_status as enum ('active', 'pending', 'archived');
-create type task_state as enum ('todo', 'in-progress', 'review', 'done');
-create type task_priority as enum ('low', 'medium', 'high');
-create type activity_kind as enum ('milestone', 'comment', 'alert', 'review');
-create type notification_category as enum ('billing', 'system', 'product', 'team');
+DO $$ BEGIN
+    create type item_status as enum ('active', 'pending', 'archived');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    create type task_state as enum ('todo', 'in-progress', 'review', 'done');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    create type task_priority as enum ('low', 'medium', 'high');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    create type activity_kind as enum ('milestone', 'comment', 'alert', 'review');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    create type notification_category as enum ('billing', 'system', 'product', 'team');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ── Items ────────────────────────────────────────────────────────────────────
 
-create table items (
+create table if not exists items (
     id          uuid primary key default gen_random_uuid(),
     user_id     uuid references auth.users(id) on delete cascade not null,
     name        text not null,
@@ -35,22 +49,26 @@ create table items (
 
 alter table items enable row level security;
 
+drop policy if exists "Users can read own items" on items;
 create policy "Users can read own items"
     on items for select using (auth.uid() = user_id and deleted_at is null);
 
+drop policy if exists "Users can insert own items" on items;
 create policy "Users can insert own items"
     on items for insert with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own items" on items;
 create policy "Users can update own items"
     on items for update using (auth.uid() = user_id);
 
+drop trigger if exists set_items_updated_at on items;
 create trigger set_items_updated_at
     before update on items
     for each row execute function set_updated_at();
 
 -- ── Tasks ────────────────────────────────────────────────────────────────────
 
-create table tasks (
+create table if not exists tasks (
     id          uuid primary key default gen_random_uuid(),
     item_id     uuid references items(id) on delete cascade not null,
     user_id     uuid references auth.users(id) on delete cascade not null,
@@ -65,22 +83,26 @@ create table tasks (
 
 alter table tasks enable row level security;
 
+drop policy if exists "Users can read own tasks" on tasks;
 create policy "Users can read own tasks"
     on tasks for select using (auth.uid() = user_id and deleted_at is null);
 
+drop policy if exists "Users can insert own tasks" on tasks;
 create policy "Users can insert own tasks"
     on tasks for insert with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own tasks" on tasks;
 create policy "Users can update own tasks"
     on tasks for update using (auth.uid() = user_id);
 
+drop trigger if exists set_tasks_updated_at on tasks;
 create trigger set_tasks_updated_at
     before update on tasks
     for each row execute function set_updated_at();
 
 -- ── Activity feed ────────────────────────────────────────────────────────────
 
-create table activity_feed (
+create table if not exists activity_feed (
     id          uuid primary key default gen_random_uuid(),
     item_id     uuid references items(id) on delete cascade not null,
     user_id     uuid references auth.users(id) on delete cascade not null,
@@ -92,15 +114,17 @@ create table activity_feed (
 
 alter table activity_feed enable row level security;
 
+drop policy if exists "Users can read own activity" on activity_feed;
 create policy "Users can read own activity"
     on activity_feed for select using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own activity" on activity_feed;
 create policy "Users can insert own activity"
     on activity_feed for insert with check (auth.uid() = user_id);
 
 -- ── Notifications ────────────────────────────────────────────────────────────
 
-create table notifications (
+create table if not exists notifications (
     id          uuid primary key default gen_random_uuid(),
     user_id     uuid references auth.users(id) on delete cascade not null,
     title       text not null,
@@ -112,8 +136,10 @@ create table notifications (
 
 alter table notifications enable row level security;
 
+drop policy if exists "Users can read own notifications" on notifications;
 create policy "Users can read own notifications"
     on notifications for select using (auth.uid() = user_id);
 
+drop policy if exists "Users can update own notifications" on notifications;
 create policy "Users can update own notifications"
     on notifications for update using (auth.uid() = user_id);
