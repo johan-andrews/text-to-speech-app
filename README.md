@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎙️ VoiceFlow AI
+# <img src="assets/favicon.png" width="40" align="top" /> 🎙️ VoiceFlow AI
 
 ### *Speak. Think. Create.*
 
@@ -18,11 +18,23 @@
 >
 > **🔗 [Click here to download the APK (Preview Build)](https://expo.dev/accounts/johanandrews/projects/flowvoice-ai/builds/51116819-0f6a-41ac-b0f4-f40806a7279f)**
 >
-> *Scan the QR code from your Android device or click the link above to install the preview build.*
+> 🚀 **[✨ CLICK HERE TO TRY THE LIVE WEB APP DEMO ✨](https://speech-to-text-app-johan.vercel.app/)** 🚀
+>
+> *Scan the QR code from your Android device or click the links above to install or view the app.*
 
 ---
 
 </div>
+
+## 📸 App Screenshots
+
+<div align="center">
+  <img src="assets/home%20page.jpg" width="32%" alt="Home Page" style="border-radius: 12px; margin: 0 4px;" />
+  <img src="assets/recent.jpg" width="32%" alt="Recent Dictations" style="border-radius: 12px; margin: 0 4px;" />
+  <img src="assets/about.jpg" width="32%" alt="About Page" style="border-radius: 12px; margin: 0 4px;" />
+</div>
+
+<br/>
 
 ## ✨ Features at a Glance
 
