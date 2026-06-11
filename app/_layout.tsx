@@ -103,24 +103,13 @@ function InnerLayout({
 
   return (
     <Stack ref={navigationRef} screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: BG } }}>
-      {/* ── Unauthenticated screens ────────────────────────────────── */}
-      <Stack.Protected guard={!isAuthed}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-
-      {/* ── Onboarding screens ─────────────────────────────────────── */}
-      <Stack.Protected guard={!!isAuthed && onboardingCompleted === false}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
-
-      {/* ── Authenticated screens ──────────────────────────────────── */}
-      <Stack.Protected guard={!!isAuthed && onboardingCompleted === true}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="session/[id]" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="support" />
-      </Stack.Protected>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="session/[id]" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="support" />
 
       {/* ── Always-public screens ── */}
       <Stack.Screen name="privacy" />

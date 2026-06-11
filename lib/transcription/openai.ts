@@ -1,3 +1,5 @@
+import { Platform } from 'react-native'
+
 export async function transcribeWithOpenAI(
   audioUri: string,
   apiKey: string,
@@ -7,12 +9,24 @@ export async function transcribeWithOpenAI(
 
   if (!apiKey) throw new Error('OPENAI_KEY_MISSING: No OpenAI API key configured.')
 
+  let fileObj: any;
+  if (Platform.OS === 'web') {
+    const res = await fetch(audioUri);
+    fileObj = await res.blob();
+  } else {
+    fileObj = {
+      uri: audioUri,
+      type: 'audio/m4a',
+      name: 'recording.m4a',
+    } as unknown as Blob;
+  }
+
   const formData = new FormData()
-  formData.append('file', {
-    uri: audioUri,
-    type: 'audio/m4a',
-    name: 'recording.m4a',
-  } as unknown as Blob)
+  if (Platform.OS === 'web') {
+    formData.append('file', fileObj, 'recording.webm')
+  } else {
+    formData.append('file', fileObj)
+  }
   formData.append('model', 'whisper-1')
   formData.append('language', language)
 

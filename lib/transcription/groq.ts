@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
+import { Platform } from 'react-native'
 
 export interface TranscriptionResult {
   text: string
@@ -15,16 +16,27 @@ export async function transcribeWithGroq(
 
   if (!apiKey) throw new Error('GROQ_KEY_MISSING: No Groq API key configured.')
 
-  // Read audio file info
-  const fileInfo = await FileSystem.getInfoAsync(audioUri)
-  if (!fileInfo.exists) throw new Error('AUDIO_FILE_MISSING: Audio file not found.')
+  let fileObj: any;
+  if (Platform.OS === 'web') {
+    const res = await fetch(audioUri);
+    fileObj = await res.blob();
+  } else {
+    // Read audio file info
+    const fileInfo = await FileSystem.getInfoAsync(audioUri)
+    if (!fileInfo.exists) throw new Error('AUDIO_FILE_MISSING: Audio file not found.')
+    fileObj = {
+      uri: audioUri,
+      type: 'audio/m4a',
+      name: 'recording.m4a',
+    } as unknown as Blob;
+  }
 
   const formData = new FormData()
-  formData.append('file', {
-    uri: audioUri,
-    type: 'audio/m4a',
-    name: 'recording.m4a',
-  } as unknown as Blob)
+  if (Platform.OS === 'web') {
+    formData.append('file', fileObj, 'recording.webm')
+  } else {
+    formData.append('file', fileObj)
+  }
   formData.append('model', 'whisper-large-v3')
   formData.append('language', language)
   formData.append('response_format', 'json')

@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
+import { Platform } from 'react-native'
 
 export async function transcribeWithDeepgram(
   audioUri: string,
@@ -9,10 +10,16 @@ export async function transcribeWithDeepgram(
 
   if (!apiKey) throw new Error('DEEPGRAM_KEY_MISSING: No Deepgram API key configured.')
 
-  const audioData = await FileSystem.readAsStringAsync(audioUri, {
-    encoding: 'base64',
-  })
-  const binaryData = Uint8Array.from(atob(audioData), c => c.charCodeAt(0))
+  let binaryData: Uint8Array | Blob;
+  if (Platform.OS === 'web') {
+    const res = await fetch(audioUri);
+    binaryData = await res.blob();
+  } else {
+    const audioData = await FileSystem.readAsStringAsync(audioUri, {
+      encoding: 'base64',
+    })
+    binaryData = Uint8Array.from(atob(audioData), c => c.charCodeAt(0))
+  }
 
   const response = await fetch(
     `https://api.deepgram.com/v1/listen?model=nova-2&language=${language}&punctuate=true&smart_format=true`,
@@ -20,9 +27,9 @@ export async function transcribeWithDeepgram(
       method: 'POST',
       headers: {
         Authorization: `Token ${apiKey}`,
-        'Content-Type': 'audio/m4a',
+        'Content-Type': Platform.OS === 'web' ? 'audio/webm' : 'audio/m4a',
       },
-      body: binaryData,
+      body: binaryData as any,
     }
   )
 

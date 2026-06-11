@@ -318,7 +318,11 @@ export default function DictateScreen() {
       </View>
 
       {/* Main Single Frame View */}
-      <View style={[s.mainFrame, { paddingBottom: TAB_BAR_CLEARANCE + 12 }]}>
+      <View style={[
+        s.mainFrame, 
+        { paddingBottom: TAB_BAR_CLEARANCE + 12 },
+        Platform.OS === 'web' ? ({ overflowY: 'auto' } as any) : null
+      ]}>
         {/* Offline notice */}
         {!isOnline && (
           <Card style={s.offlineCard}>

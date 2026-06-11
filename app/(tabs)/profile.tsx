@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, ScrollView, StyleSheet, Pressable, Linking, TextInput, Modal } from 'react-native'
+import { useState, useEffect } from 'react'
+import { View, ScrollView, StyleSheet, Pressable, Linking, TextInput, Modal, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -38,6 +38,20 @@ export default function ProfileScreen() {
     const [signOutModal, setSignOutModal] = useState(false)
     const [signingOut, setSigningOut] = useState(false)
     const [errorModal, setErrorModal] = useState<string | null>(null)
+
+    const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setIsAuthed(!!session)
+        })
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setIsAuthed(!!session)
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
 
     // Name editing states
     const [editNameModal, setEditNameModal] = useState(false)
@@ -80,6 +94,29 @@ export default function ProfileScreen() {
         } finally {
             setSavingName(false)
         }
+    }
+
+    if (isAuthed === null) {
+        return (
+            <View style={{ flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator color={ACCENT} />
+            </View>
+        )
+    }
+
+    if (isAuthed === false) {
+        return (
+            <View style={[s.container, { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center', paddingTop: insets.top }]}>
+                <Ionicons name="person-circle-outline" size={80} color={TEXT_TERTIARY} />
+                <Text style={{ fontSize: 22, fontWeight: '800', marginTop: 20, marginBottom: 8, color: TEXT_PRIMARY }}>Not Signed In</Text>
+                <Text style={{ textAlign: 'center', color: TEXT_SECONDARY, marginBottom: 32, paddingHorizontal: 32, fontSize: 15, lineHeight: 22 }}>
+                    Sign in to sync your transcription history and access premium features.
+                </Text>
+                <Pressable onPress={() => router.push('/(auth)/login')} style={[s.saveBtn, { paddingHorizontal: 32, paddingVertical: 12, borderRadius: 12 }]}>
+                    <Text style={[s.saveBtnText, { fontSize: 16 }]}>Sign In / Register</Text>
+                </Pressable>
+            </View>
+        )
     }
 
     return (
